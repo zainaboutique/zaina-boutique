@@ -219,7 +219,7 @@ export default function AccountPage() {
     const photo = profile?.photoURL || user?.photoURL;
 
     return (
-      <div className="min-h-screen bg-bg pb-28 md:pb-12">
+      <div className="min-h-screen bg-bg pb-8">
         <div className="max-w-2xl mx-auto px-4 pt-10 space-y-4">
           <div className="bg-white rounded-3xl shadow-card p-6 flex items-center gap-4">
             {photo ? (
@@ -325,7 +325,7 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg pb-28 md:pb-12 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-bg pb-8 flex items-center justify-center px-4">
       <div className="bg-white rounded-3xl shadow-card p-8 w-full max-w-sm text-center">
         <div className="w-12 h-12 rounded-2xl bg-bg flex items-center justify-center mx-auto">
           <ShieldCheck size={20} />

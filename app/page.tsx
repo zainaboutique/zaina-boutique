@@ -32,7 +32,7 @@ export default async function HomePage() {
   }).filter((t) => t.product);
 
   return (
-    <div className="min-h-screen bg-bg pb-24 md:pb-0">
+    <div className="min-h-screen bg-bg pb-8 md:pb-0">
       <div className="pt-2">
         <HeroBanner banners={banners} />
       </div>

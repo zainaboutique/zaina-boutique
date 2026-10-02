@@ -22,7 +22,7 @@ export default async function FaqPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg pb-28 md:pb-12">
+    <div className="min-h-screen bg-bg pb-8">
       {faqs.length > 0 && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       )}

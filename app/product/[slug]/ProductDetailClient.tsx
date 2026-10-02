@@ -62,7 +62,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-bg pb-40 md:pb-12">
+    <div className="min-h-screen bg-bg pb-28 md:pb-12">
       <div className="sticky top-0 z-30 bg-bg/95 backdrop-blur flex items-center justify-between px-4 py-3 border-b border-black/5 md:hidden">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-card shadow-card flex items-center justify-center">
           <ArrowLeft size={16} />
@@ -171,8 +171,9 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
             <button onClick={() => setQty((q) => q + 1)} className="w-8 h-8 rounded-full bg-card">+</button>
           </div>
 
-          <div className="hidden md:block mt-8 max-w-md">
-            <button onClick={() => handleAdd(false)} disabled={!isAvailable} className="w-full bg-ink text-white font-semibold py-3.5 rounded-full text-sm disabled:opacity-40 disabled:cursor-not-allowed">{isAvailable ? "Add to Bag" : "Out of Stock"}</button>
+          <div className="hidden md:grid grid-cols-2 gap-3 mt-8 max-w-md">
+            <button onClick={() => handleAdd(false)} disabled={!isAvailable} className="border border-ink font-semibold py-3.5 rounded-full text-sm disabled:opacity-40 disabled:cursor-not-allowed">Add to Bag</button>
+            <button onClick={() => handleAdd(true)} disabled={!isAvailable} className="bg-ink text-white font-semibold py-3.5 rounded-full text-sm disabled:opacity-40 disabled:cursor-not-allowed">{isAvailable ? "Buy Now" : "Out of Stock"}</button>
           </div>
         </div>
       </div>
@@ -190,8 +191,9 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
         <ProductReviews productId={product.id} />
       </div>
 
-      <div className="md:hidden fixed bottom-24 left-4 right-4 z-30 bg-card border border-black/5 rounded-2xl shadow-dock px-4 py-3">
-        <button onClick={() => handleAdd(false)} disabled={!isAvailable} className="w-full bg-ink text-white font-semibold py-3 rounded-full text-sm disabled:opacity-40">{isAvailable ? "Add to Bag" : "Out of Stock"}</button>
+      <div className="md:hidden fixed bottom-4 left-4 right-4 z-30 bg-card border border-black/5 rounded-2xl shadow-dock px-4 py-3 flex gap-3">
+        <button onClick={() => handleAdd(false)} disabled={!isAvailable} className="flex-1 border border-ink font-semibold py-3 rounded-full text-sm disabled:opacity-40">Add to Bag</button>
+        <button onClick={() => handleAdd(true)} disabled={!isAvailable} className="flex-1 bg-ink text-white font-semibold py-3 rounded-full text-sm disabled:opacity-40">{isAvailable ? "Buy Now" : "Out of Stock"}</button>
       </div>
     </div>
   );

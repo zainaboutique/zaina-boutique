@@ -45,7 +45,7 @@ function TrackContent() {
   const canCancel = result && (result.status === "Pending" || result.status === "Processed");
 
   return (
-    <div className="min-h-screen bg-bg pb-28 md:pb-12">
+    <div className="min-h-screen bg-bg pb-8">
       <div className="max-w-md mx-auto px-4 pt-10">
         <h1 className="text-2xl font-bold text-center">Track Your Order</h1>
         <p className="text-sm text-gray-400 text-center mt-1">Enter the order number from your confirmation screen.</p>

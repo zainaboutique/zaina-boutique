@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Header from "./Header";
 import Footer from "./Footer";
-import BottomNav from "./BottomNav";
+
 import CartDrawer from "./CartDrawer";
 import WhatsAppButton from "./WhatsAppButton";
 import { getSettings } from "@/lib/data";
@@ -83,7 +83,6 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
       <Header settings={settings} />
       {children}
       <Footer settings={settings} />
-      <BottomNav />
       <CartDrawer />
       <WhatsAppButton settings={settings} />
     </>

@@ -28,7 +28,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-bg pb-28 md:pb-12">
+    <div className="min-h-screen bg-bg pb-8">
       <div className="max-w-2xl mx-auto px-4 pt-6">
         <Link href="/blog" className="flex items-center gap-1.5 text-sm text-gray-500 mb-4">
           <ArrowLeft size={15} /> Journal

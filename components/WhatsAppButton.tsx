@@ -13,8 +13,8 @@ export default function WhatsAppButton({ settings }: { settings: Settings }) {
   const pathname = usePathname();
   if (!settings.whatsappNumber) return null;
 
-  // Product pages have their own floating Add to Bag bar in this same
-  // bottom-right area on mobile — sit above it there instead of overlapping.
+  // Product pages have their own floating Add to Bag / Buy Now bar at the
+  // bottom on mobile — sit above it there instead of overlapping.
   const isProductPage = pathname?.startsWith("/product/");
 
   const link = buildWhatsAppLink(settings.whatsappNumber, "Hi Zaina Boutique! I'd like to place an order.");
@@ -25,7 +25,7 @@ export default function WhatsAppButton({ settings }: { settings: Settings }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Order on WhatsApp"
-      className={`fixed right-4 md:bottom-6 z-40 w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center shadow-dock ${isProductPage ? "bottom-44" : "bottom-24"}`}
+      className={`fixed right-4 md:bottom-6 z-40 w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center shadow-dock ${isProductPage ? "bottom-28" : "bottom-6"}`}
     >
       <MessageCircle size={22} />
     </a>

@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function StoreLocatorPage() {
   const settings = await getSettings();
   return (
-    <div className="min-h-screen bg-bg pb-28 md:pb-12">
+    <div className="min-h-screen bg-bg pb-8">
       <div className="max-w-2xl mx-auto px-4 pt-10">
         <h1 className="text-2xl font-bold mb-6">Store Locator</h1>
         {settings.address ? (

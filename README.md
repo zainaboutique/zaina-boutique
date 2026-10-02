@@ -399,13 +399,24 @@ for an order paid via Razorpay, the actual refund for the cancelled item still h
 manually through your Razorpay dashboard — this app flags that it's needed, but doesn't move
 money on its own.
 
-## 12a. Product Page: Single "Add to Bag" Button
+## 12a. Bottom Navigation Dock Removed
 
-The "Buy Now" button has been removed from the product page (both desktop and the floating
-mobile bar) — there's now one button, "Add to Bag." The floating mobile bar's position was also
-fixed — it previously sat too close to the bottom navigation dock, with barely any gap between
-them; there's now clear, deliberate spacing between every floating element on the product page
-(the Add to Bag bar, the WhatsApp button, and the bottom nav).
+The floating black bottom nav dock (search/home/menu/account/bag icons) has been removed
+entirely — it duplicated functionality already in the top header (search bar, hamburger menu,
+account icon, cart icon), and was the root cause of several rounds of overlap/spacing bugs with
+the product page's floating "Add to Bag" bar and the WhatsApp button. With it gone, both of those
+now sit directly at the bottom of the screen with no dock to avoid, and every page's bottom
+padding was trimmed back from the extra space that used to reserve room for it. "Add to Bag" and
+"Buy Now" both remain on the product page, unchanged.
+
+## 12b. Homepage Category Row: Main Categories With Pop-Down Sub-Categories
+
+The homepage's circular category row now shows the four main categories (New Arrival, Women,
+Men, Kids) rather than specific sub-categories. Tapping one expands a small panel directly below
+the row listing that group's actual sub-categories (e.g. Sarees, Lehengas under Women) — tapping
+a sub-category, or "Shop all [Group]," goes to that page. The images shown are whatever you set
+in Admin → Category → Main Categories; if you haven't set one for a group yet, it falls back to
+that group's first sub-category image so the circle isn't empty.
 
 ## 13a. Mobile Menu Fixes
 

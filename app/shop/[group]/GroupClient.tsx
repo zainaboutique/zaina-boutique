@@ -25,7 +25,7 @@ export default function GroupClient({ shopGroup }: { shopGroup: ShopGroup }) {
   }
 
   return (
-    <div className="min-h-screen bg-bg pb-28 md:pb-12">
+    <div className="min-h-screen bg-bg pb-8">
       <div className="max-w-6xl mx-auto px-4 pt-6">
         <h1 className="text-2xl font-bold">{shopGroup}'s Collection</h1>
 

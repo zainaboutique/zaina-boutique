@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Page() {
   const content = await getPageContent("size-guide");
   return (
-    <div className="min-h-screen bg-bg pb-28 md:pb-12">
+    <div className="min-h-screen bg-bg pb-8">
       <div className="max-w-2xl mx-auto px-4 pt-10">
         <h1 className="text-2xl font-bold mb-4">{content.title}</h1>
         {content.body.split("\n\n").map((para, i) => (

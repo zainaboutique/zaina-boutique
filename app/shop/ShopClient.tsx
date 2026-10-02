@@ -91,7 +91,7 @@ function ShopContent() {
   const activeFilterCount = (minPrice || maxPrice ? 1 : 0) + (selectedSizes.length > 0 ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-bg pb-28 md:pb-12">
+    <div className="min-h-screen bg-bg pb-8">
       <div className="max-w-6xl mx-auto px-4 pt-6">
         <h1 className="text-2xl font-bold">
           {q ? `Results for "${q}"` : type ? type : occasion ? `${occasion} Edit` : "Shop"}
