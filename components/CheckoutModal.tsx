@@ -8,6 +8,7 @@ import { X, CheckCircle2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { createOrder, validateDiscountCode, getSettings } from "@/lib/data";
 import { buildWhatsAppLink } from "./WhatsAppButton";
+import { INDIA_STATES } from "@/lib/india-states";
 import type { Order, Settings } from "@/lib/types";
 
 interface Props {
@@ -37,6 +38,7 @@ export default function CheckoutModal({ onClose }: Props) {
     phone: "",
     address: "",
     city: "",
+    state: "",
     payment: "Cash on Delivery" as PaymentMethod,
   });
 
@@ -62,11 +64,15 @@ export default function CheckoutModal({ onClose }: Props) {
     const itemLines = order.items
       .map((i, idx) => `${idx + 1}) ${i.title}${i.color ? ` (${i.color})` : ""} — Size ${i.size} × ${i.quantity}\n${origin}/product/${i.slug || i.productId}`)
       .join("\n");
-    return `Hi Zaina Boutique! I'd like to place order ${order.orderNumber} for ${formatPrice(order.total)}, delivering to ${form.address}, ${form.city}.\n\nItems:\n${itemLines}`;
+    return `Hi Zaina Boutique! I'd like to place order ${order.orderNumber} for ${formatPrice(order.total)}, delivering to ${form.address}, ${form.city}, ${form.state}.\n\nItems:\n${itemLines}`;
   }
 
   const subtotal = totalPrice();
-  const total = Math.max(0, subtotal - (discountApplied?.amount ?? 0));
+  // Free shipping only when EVERY item in the cart qualifies — a single
+  // item without the flag means the admin's flat fee still applies.
+  const qualifiesForFreeShipping = items.length > 0 && items.every((i) => i.freeShipping);
+  const shippingCost = qualifiesForFreeShipping ? 0 : (settings?.shippingFee ?? 0);
+  const total = Math.max(0, subtotal - (discountApplied?.amount ?? 0)) + shippingCost;
 
   async function applyDiscount() {
     setDiscountError("");
@@ -87,10 +93,12 @@ export default function CheckoutModal({ onClose }: Props) {
       phone: form.phone,
       address: form.address,
       city: form.city,
+      state: form.state,
       items,
       subtotal,
       discountCode: discountApplied?.code,
       discountAmount: discountApplied?.amount,
+      shippingCost,
       total,
       status: "Pending",
       paymentMethod,
@@ -198,7 +206,18 @@ export default function CheckoutModal({ onClose }: Props) {
             <input required type="email" placeholder="Email address" value={form.email} onChange={(e) => update("email", e.target.value)} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
             <input required placeholder="Phone number" value={form.phone} onChange={(e) => update("phone", e.target.value)} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
             <input required placeholder="Delivery address" value={form.address} onChange={(e) => update("address", e.target.value)} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
-            <input required placeholder="City" value={form.city} onChange={(e) => update("city", e.target.value)} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
+            <input required placeholder="City / District" value={form.city} onChange={(e) => update("city", e.target.value)} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
+            <select
+              required
+              value={form.state}
+              onChange={(e) => update("state", e.target.value)}
+              className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none text-gray-700"
+            >
+              <option value="" disabled>Select State</option>
+              {INDIA_STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
 
             <div className="flex gap-2">
               <input
@@ -261,6 +280,12 @@ export default function CheckoutModal({ onClose }: Props) {
                   <span>-{formatPrice(discountApplied.amount)}</span>
                 </div>
               )}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Shipping</span>
+                <span className={shippingCost === 0 ? "text-green-600 font-medium" : ""}>
+                  {shippingCost === 0 ? "Free" : formatPrice(shippingCost)}
+                </span>
+              </div>
               <div className="flex items-center justify-between font-bold text-base pt-1">
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
@@ -298,8 +323,10 @@ export default function CheckoutModal({ onClose }: Props) {
             <p className="text-sm text-gray-500 mt-1">Your order has been placed and is being processed.</p>
             <div className="bg-bg rounded-2xl p-4 mt-5 text-left text-sm space-y-1">
               <div className="flex justify-between"><span className="text-gray-500">Order Number</span><span className="font-bold">{confirmedOrder.orderNumber}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-semibold">{formatPrice(confirmedOrder.subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Shipping</span><span className="font-semibold">{!confirmedOrder.shippingCost ? "Free" : formatPrice(confirmedOrder.shippingCost)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Total</span><span className="font-semibold">{formatPrice(confirmedOrder.total)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Delivery to</span><span className="font-semibold text-right">{form.address}, {form.city}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Delivery to</span><span className="font-semibold text-right">{form.address}, {form.city}, {form.state}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Payment</span><span className="font-semibold">{form.payment}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Status</span><span className="font-semibold">Pending</span></div>
             </div>

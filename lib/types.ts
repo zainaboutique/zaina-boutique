@@ -84,6 +84,7 @@ export interface CartItem {
   size: string;
   color?: string;
   quantity: number;
+  freeShipping?: boolean; // copied from the product at add-to-cart time, so checkout can waive the shipping fee without re-fetching product data
 }
 
 export type OrderStatus = "Pending" | "Processed" | "Shipped" | "Delivered" | "Cancelled";
@@ -96,10 +97,12 @@ export interface Order {
   phone: string;
   address: string;
   city: string;
+  state?: string; // optional for orders placed before this field existed
   items: CartItem[];
   subtotal: number;
   discountCode?: string;
   discountAmount?: number;
+  shippingCost?: number;
   total: number;
   status: OrderStatus;
   paymentMethod: "Cash on Delivery" | "Razorpay" | "WhatsApp Order";
@@ -108,6 +111,11 @@ export interface Order {
   trackingNumber?: string;
   trackingUrl?: string;
   cancelledAt?: number;
+  // Indices into `items` that the admin has cancelled individually (e.g. an
+  // out-of-stock item in an otherwise fulfillable order) — the item stays in
+  // the record for a full history, but is excluded from the revised total
+  // and shown struck through wherever the order is displayed.
+  cancelledItemIndexes?: number[];
   createdAt: number;
 }
 
@@ -210,6 +218,7 @@ export interface Settings {
   siteName: string;
   tagline: string;
   metaDescription?: string; // dedicated SEO description for the homepage — kept separate from tagline, since tagline is also shown visibly in the footer and the two often need different lengths
+  shippingFee?: number; // flat fee in ₹, charged at checkout unless every item in the cart has freeShipping set; 0 or unset means free shipping site-wide
   logoUrl?: string;
   logoMarkUrl?: string;
   primaryColor: string;

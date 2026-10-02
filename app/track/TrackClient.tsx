@@ -97,7 +97,10 @@ function TrackContent() {
 
             <div className="bg-card rounded-2xl shadow-card p-4 text-sm space-y-1.5">
               <div className="flex justify-between"><span className="text-gray-400">Order</span><span className="font-semibold">{result.orderNumber}</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Subtotal</span><span className="font-semibold">{formatPrice(result.subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Shipping</span><span className="font-semibold">{!result.shippingCost ? "Free" : formatPrice(result.shippingCost)}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Total</span><span className="font-semibold">{formatPrice(result.total)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Delivery to</span><span className="font-semibold text-right">{result.city}{result.state ? `, ${result.state}` : ""}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Placed</span><span className="font-semibold">{new Date(result.createdAt).toLocaleDateString()}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Status</span><span className="font-semibold flex items-center gap-1">{result.status === "Delivered" && <CheckCircle2 size={14} className="text-green-600" />} {result.status}</span></div>
             </div>
@@ -105,15 +108,19 @@ function TrackContent() {
             <div className="bg-card rounded-2xl shadow-card p-4 text-sm mt-3">
               <p className="text-gray-400 text-xs mb-2">Items</p>
               <div className="divide-y divide-black/5">
-                {result.items.map((item) => (
-                  <div key={item.productId + item.size + (item.color || "")} className="flex justify-between py-2">
-                    <span>
-                      <Link href={`/product/${item.slug || item.productId}`} className="underline hover:text-ink">{item.title}</Link>
-                      {" "}({item.size}{item.color ? `, ${item.color}` : ""}) × {item.quantity}
-                    </span>
-                    <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
-                  </div>
-                ))}
+                {result.items.map((item, idx) => {
+                  const isCancelled = result.cancelledItemIndexes?.includes(idx);
+                  return (
+                    <div key={item.productId + item.size + (item.color || "") + idx} className={`flex justify-between py-2 ${isCancelled ? "opacity-50" : ""}`}>
+                      <span className={isCancelled ? "line-through" : ""}>
+                        <Link href={`/product/${item.slug || item.productId}`} className="underline hover:text-ink">{item.title}</Link>
+                        {" "}({item.size}{item.color ? `, ${item.color}` : ""}) × {item.quantity}
+                        {isCancelled && <span className="ml-1.5 text-accent no-underline">(Cancelled — out of stock)</span>}
+                      </span>
+                      <span className={`font-medium ${isCancelled ? "line-through" : ""}`}>{formatPrice(item.price * item.quantity)}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

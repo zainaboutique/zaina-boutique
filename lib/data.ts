@@ -254,6 +254,47 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
   writeLocal(KEYS.orders, orders.map((o) => (o.id === id ? { ...o, ...updates } : o)));
 }
 
+// Cancels one line item within an order (e.g. it's out of stock) without
+// touching the rest — the item stays in `items` for a full record of what
+// was ordered, just flagged as cancelled and excluded from the revised total.
+export async function cancelOrderItem(order: Order, itemIndex: number): Promise<Order> {
+  const cancelledItemIndexes = Array.from(new Set([...(order.cancelledItemIndexes ?? []), itemIndex]));
+  const updated = { ...order, cancelledItemIndexes };
+  if (isFirebaseConfigured && db) {
+    await updateDoc(doc(db, "orders", order.id), { cancelledItemIndexes });
+    return updated;
+  }
+  const orders = readLocal<Order[]>(KEYS.orders, []);
+  writeLocal(KEYS.orders, orders.map((o) => (o.id === order.id ? updated : o)));
+  return updated;
+}
+
+export async function restoreOrderItem(order: Order, itemIndex: number): Promise<Order> {
+  const cancelledItemIndexes = (order.cancelledItemIndexes ?? []).filter((i) => i !== itemIndex);
+  const updated = { ...order, cancelledItemIndexes };
+  if (isFirebaseConfigured && db) {
+    await updateDoc(doc(db, "orders", order.id), { cancelledItemIndexes });
+    return updated;
+  }
+  const orders = readLocal<Order[]>(KEYS.orders, []);
+  writeLocal(KEYS.orders, orders.map((o) => (o.id === order.id ? updated : o)));
+  return updated;
+}
+
+// The order's total minus whatever was charged for any individually
+// cancelled items — this is what the customer should actually be charged
+// (for COD) or refunded the difference on (for a prepaid order; the actual
+// refund still has to be issued manually through Razorpay's dashboard,
+// since this app doesn't integrate the refund API).
+export function revisedOrderTotal(order: Order): number {
+  if (!order.cancelledItemIndexes || order.cancelledItemIndexes.length === 0) return order.total;
+  const cancelledAmount = order.items.reduce(
+    (sum, item, idx) => (order.cancelledItemIndexes!.includes(idx) ? sum + item.price * item.quantity : sum),
+    0
+  );
+  return Math.max(0, order.total - cancelledAmount);
+}
+
 export async function updateOrderTracking(
   id: string,
   tracking: { carrier?: string; trackingNumber?: string; trackingUrl?: string }

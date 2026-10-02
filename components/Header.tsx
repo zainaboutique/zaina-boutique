@@ -93,7 +93,7 @@ export default function Header({ settings }: { settings: Settings }) {
           <Link
             href="/account"
             aria-label="Account"
-            className="hidden sm:flex w-9 h-9 rounded-full bg-card shadow-card items-center justify-center"
+            className="flex w-9 h-9 rounded-full bg-card shadow-card items-center justify-center"
           >
             <User size={18} />
           </Link>
@@ -127,7 +127,7 @@ export default function Header({ settings }: { settings: Settings }) {
       {/* Mobile slide-out menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
+          <div className="absolute inset-0 bg-black/70" onClick={() => setMobileMenuOpen(false)} />
           <div className="relative w-72 max-w-[80%] h-full bg-card p-5 space-y-1 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <span className={`font-medium tracking-[0.3em] uppercase text-sm ${logoFontClass}`} style={logoFontStyle}>{settings.siteName || "Zaina Boutique"}</span>

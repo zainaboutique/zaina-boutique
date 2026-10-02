@@ -43,7 +43,7 @@ export default function BottomNav() {
 
       {menuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMenuOpen(false)} />
+          <div className="absolute inset-0 bg-black/70" onClick={() => setMenuOpen(false)} />
           <div className="relative w-72 max-w-[80%] h-full bg-card p-5 space-y-1.5 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <span className="font-black tracking-[0.15em] uppercase text-sm">Zaina Boutique</span>

@@ -250,6 +250,23 @@ export default function AdminSettingsPage() {
 
         {tab === "Payments" && (
           <div className="space-y-5">
+            <div>
+              <label className="text-sm font-medium block mb-2">Shipping Fee (₹)</label>
+              <input
+                type="number"
+                min={0}
+                placeholder="0"
+                value={settings.shippingFee ?? ""}
+                onChange={(e) => setSettings({ ...settings, shippingFee: e.target.value ? Number(e.target.value) : undefined })}
+                className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Charged at checkout on every order. Leave blank or 0 for free shipping site-wide. A
+                product marked "Free Shipping" (Admin → Product) waives this fee — but only when
+                every item in the cart has that flag; mixed carts still pay the fee.
+              </p>
+            </div>
+
             <label className="flex items-center justify-between gap-2 text-sm font-medium bg-bg rounded-2xl px-4 py-3">
               Cash on Delivery
               <input

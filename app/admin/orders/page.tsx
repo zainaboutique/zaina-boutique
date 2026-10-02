@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { formatPrice } from "@/lib/utils";
 import { X } from "lucide-react";
 import Link from "next/link";
-import { getOrders, updateOrderStatus, updateOrderTracking } from "@/lib/data";
+import { getOrders, updateOrderStatus, updateOrderTracking, cancelOrderItem, restoreOrderItem, revisedOrderTotal } from "@/lib/data";
 import type { Order, OrderStatus } from "@/lib/types";
 
 const STATUS_DOT: Record<OrderStatus, string> = {
@@ -46,6 +46,15 @@ export default function AdminOrdersPage() {
     await updateOrderStatus(id, status);
     await refresh();
     setSelected((s) => (s && s.id === id ? { ...s, status } : s));
+  }
+
+  async function handleToggleItemCancel(itemIndex: number, currentlyCancelled: boolean) {
+    if (!selected) return;
+    const updated = currentlyCancelled
+      ? await restoreOrderItem(selected, itemIndex)
+      : await cancelOrderItem(selected, itemIndex);
+    setSelected(updated);
+    await refresh();
   }
 
   function openOrder(order: Order) {
@@ -138,20 +147,34 @@ export default function AdminOrdersPage() {
               </div>
               <div>
                 <p className="text-gray-400 text-xs">Shipping Address</p>
-                <p className="font-medium">{selected.address}, {selected.city}</p>
+                <p className="font-medium">{selected.address}, {selected.city}{selected.state ? `, ${selected.state}` : ""}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-2">Items</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-gray-400 text-xs">Items</p>
+                  <p className="text-gray-400 text-xs">If one is out of stock, cancel just that item</p>
+                </div>
                 <div className="divide-y divide-black/5">
-                  {selected.items.map((item) => (
-                    <div key={item.productId + item.size + (item.color || "")} className="flex justify-between py-2">
-                      <span>
-                        <Link href={`/product/${item.slug || item.productId}`} target="_blank" className="underline hover:text-ink">{item.title}</Link>
-                        {" "}({item.size}{item.color ? `, ${item.color}` : ""}) × {item.quantity}
-                      </span>
-                      <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
-                    </div>
-                  ))}
+                  {selected.items.map((item, idx) => {
+                    const isCancelled = selected.cancelledItemIndexes?.includes(idx);
+                    return (
+                      <div key={item.productId + item.size + (item.color || "") + idx} className={`flex items-center justify-between gap-2 py-2 ${isCancelled ? "opacity-50" : ""}`}>
+                        <span className={isCancelled ? "line-through" : ""}>
+                          <Link href={`/product/${item.slug || item.productId}`} target="_blank" className="underline hover:text-ink">{item.title}</Link>
+                          {" "}({item.size}{item.color ? `, ${item.color}` : ""}) × {item.quantity}
+                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`font-medium ${isCancelled ? "line-through" : ""}`}>{formatPrice(item.price * item.quantity)}</span>
+                          <button
+                            onClick={() => handleToggleItemCancel(idx, Boolean(isCancelled))}
+                            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${isCancelled ? "bg-bg text-ink" : "bg-accent/10 text-accent"}`}
+                          >
+                            {isCancelled ? "Restore" : "Cancel"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               {selected.discountAmount ? (
@@ -160,10 +183,34 @@ export default function AdminOrdersPage() {
                   <span className="font-medium text-green-600">-{formatPrice(selected.discountAmount)}</span>
                 </div>
               ) : null}
-              <div className="flex justify-between font-bold border-t border-black/5 pt-3">
-                <span>Total</span>
-                <span>{formatPrice(selected.total)}</span>
-              </div>
+              {typeof selected.shippingCost === "number" && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Shipping</span>
+                  <span className="font-medium">{selected.shippingCost === 0 ? "Free" : formatPrice(selected.shippingCost)}</span>
+                </div>
+              )}
+              {selected.cancelledItemIndexes && selected.cancelledItemIndexes.length > 0 ? (
+                <>
+                  <div className="flex justify-between text-sm text-gray-400 line-through">
+                    <span>Original Total</span>
+                    <span>{formatPrice(selected.total)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold border-t border-black/5 pt-3">
+                    <span>Revised Total</span>
+                    <span>{formatPrice(revisedOrderTotal(selected))}</span>
+                  </div>
+                  {selected.paymentMethod === "Razorpay" && (
+                    <p className="text-xs text-accent -mt-2">
+                      This order was prepaid — refund the difference to the customer manually through your Razorpay dashboard.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="flex justify-between font-bold border-t border-black/5 pt-3">
+                  <span>Total</span>
+                  <span>{formatPrice(selected.total)}</span>
+                </div>
+              )}
               <div>
                 <p className="text-gray-400 text-xs mb-2">Update Status</p>
                 <select

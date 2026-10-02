@@ -372,7 +372,29 @@ cells (a common gotcha with naive CSV parsers).
    (needed for admin login and customer Google Sign-In).
 6. (Optional) Add a custom domain in Vercel and update `NEXT_PUBLIC_SITE_URL` to match.
 
-## 13. Search, Sort & Filter (Shop page)
+## 13. Checkout: State, Shipping Fee & Per-Item Cancellation
+
+**State dropdown at checkout.** Customers now select their state from a dropdown (all 28 states
++ 8 union territories) instead of typing it. District/city stays a free-text field deliberately —
+India has 775+ districts and new ones are created periodically as states reorganize them, so a
+hardcoded dropdown risks being wrong or incomplete in a way a customer can't work around; a
+dropdown that's missing someone's actual district is worse than a text field.
+
+**Shipping fee.** Admin → Settings → Payments has a new "Shipping Fee" field — a flat amount
+charged at checkout, shown as its own line item. A product marked "Free Shipping" (Admin →
+Product) waives this fee, but only when *every* item in the cart has that flag — a mixed cart
+still pays the fee, so the badge never ends up more generous than intended.
+
+**Cancel one item in an order, not the whole thing.** Admin → Order now has a Cancel button next
+to each individual item — for when a customer orders 2 products but only 1 is actually in stock.
+The cancelled item stays visible (struck through) for a full record of what was originally
+ordered, the order shows both its original and revised total, and the customer sees the same
+struck-through item with a note on their tracking page. One thing this can't do automatically:
+for an order paid via Razorpay, the actual refund for the cancelled item still has to be issued
+manually through your Razorpay dashboard — this app flags that it's needed, but doesn't move
+money on its own.
+
+## 14. Search, Sort & Filter (Shop page)
 
 The Shop page now has a **Filters** button (price range buckets, size) and a **Sort** dropdown
 (Newest, Price Low→High, Price High→Low), both reflected in the URL so filtered/sorted views are
@@ -380,7 +402,7 @@ shareable and bookmarkable. Search (the box in the header) now also matches agai
 fabric, sub-category, and occasion — not just title, tags, and category — so a search for e.g. a
 fabric name or designer surfaces relevant products.
 
-## 14. SEO Audit Fixes (October 2026)
+## 15. SEO Audit Fixes (October 2026)
 
 A real audit (SEOptimer) was run against the live site and addressed point by point — here's
 what changed and, just as importantly, what's flagged but genuinely isn't a code problem:
@@ -423,7 +445,7 @@ what changed and, just as importantly, what's flagged but genuinely isn't a code
   URL structure, which your own stated SEO guidelines say explicitly not to do. Left as-is,
   deliberately.
 
-## 15. SEO & Search Console
+## 16. SEO & Search Console
 
 **What's already built in, and what it actually does:**
 
@@ -467,7 +489,7 @@ competitors already are, and how consistently you keep adding products/content o
 of this work as making sure the site is no longer working against you — the ongoing part (content,
 backlinks, reviews, consistency) is what actually moves rankings from here.
 
-## 16. AEO & GEO (Answer Engines & AI Search)
+## 17. AEO & GEO (Answer Engines & AI Search)
 
 These are newer, related-but-different concerns from classic SEO: **AEO** (Answer Engine
 Optimization) is about showing up in voice assistants and Google's direct-answer boxes; **GEO**

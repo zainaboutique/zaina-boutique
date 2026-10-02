@@ -45,6 +45,7 @@ export const useCartStore = create<CartState>((set, get) => ({
           {
             productId: product.id,
             slug: product.slug,
+            freeShipping: product.freeShipping,
             title: product.title,
             price: product.price,
             imageUrl: product.images?.[0] || product.imageUrl,
