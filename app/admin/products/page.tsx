@@ -62,6 +62,7 @@ const emptyForm = {
   stock: "",
   inStock: true,
   freeShipping: false,
+  shippingCost: "",
   tags: "",
   material: "",
   fit: "",
@@ -124,6 +125,7 @@ export default function AdminProductsPage() {
       stock: String(p.stock),
       inStock: p.inStock ?? true,
       freeShipping: Boolean(p.freeShipping),
+      shippingCost: p.shippingCost !== undefined ? String(p.shippingCost) : "",
       tags: (p.tags ?? []).join(", "),
       material: p.details?.material ?? "",
       fit: p.details?.fit ?? "",
@@ -245,6 +247,7 @@ export default function AdminProductsPage() {
         stock: Number(form.stock),
         inStock: form.inStock,
         freeShipping: form.freeShipping,
+        shippingCost: !form.freeShipping && form.shippingCost ? Number(form.shippingCost) : undefined,
         sizes: form.sizes,
         tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
         details: { material: form.material, fit: form.fit, care: form.care },
@@ -444,7 +447,15 @@ export default function AdminProductsPage() {
                       <span className="text-xs font-medium text-green-600">In stock</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{p.freeShipping ? <span className="text-xs font-medium text-green-600">Free</span> : <span className="text-xs text-gray-400">—</span>}</td>
+                  <td className="px-4 py-3">
+                    {p.freeShipping ? (
+                      <span className="text-xs font-medium text-green-600">Free</span>
+                    ) : p.shippingCost !== undefined ? (
+                      <span className="text-xs font-medium">{formatPrice(p.shippingCost)}</span>
+                    ) : (
+                      <span className="text-xs text-gray-400">Default</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {p.badges.map((b) => (
@@ -549,6 +560,22 @@ export default function AdminProductsPage() {
                 <input type="checkbox" checked={form.freeShipping} onChange={(e) => setForm((f) => ({ ...f, freeShipping: e.target.checked }))} />
                 Free Shipping
               </label>
+              {!form.freeShipping && (
+                <div>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Shipping cost for this product (₹) — leave blank to use the site-wide default"
+                    value={form.shippingCost}
+                    onChange={(e) => setForm((f) => ({ ...f, shippingCost: e.target.value }))}
+                    className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Only needed if this product should cost more (or less) to ship than your
+                    site-wide default in Settings → Payments. Most products can leave this blank.
+                  </p>
+                </div>
+              )}
 
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Details</p>
               <input placeholder="Material (e.g. 100% Cotton)" value={form.material} onChange={(e) => setForm((f) => ({ ...f, material: e.target.value }))} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />

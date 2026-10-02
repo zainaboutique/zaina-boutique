@@ -39,16 +39,7 @@ export default async function HomePage() {
 
       <CategoryBubbles />
 
-      <div className="max-w-6xl mx-auto px-4 pt-6 pb-2">
-        <p className="text-sm text-gray-500 leading-relaxed">
-          {settings.siteName || "Zaina Boutique"} is a multi-designer boutique for Indian and
-          contemporary fashion — sarees, lehengas, kurtis, and everyday essentials, curated for
-          festive occasions and daily wear alike. Every order ships with real-time tracking, and
-          new arrivals are added regularly across Women's, Men's, and Kids' collections.
-        </p>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 pt-4">
+      <div className="max-w-6xl mx-auto px-4 pt-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">New Arrivals</h2>
           <Link href="/shop?category=New%20Arrival" className="text-xs font-semibold px-2.5 py-1 rounded-full bg-accent text-white">
@@ -141,6 +132,15 @@ export default async function HomePage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 pt-10 pb-2">
+        <p className="text-sm text-gray-500 leading-relaxed">
+          {settings.siteName || "Zaina Boutique"} is a multi-designer boutique for Indian and
+          contemporary fashion — sarees, lehengas, kurtis, and everyday essentials, curated for
+          festive occasions and daily wear alike. Every order ships with real-time tracking, and
+          new arrivals are added regularly across Women's, Men's, and Kids' collections.
+        </p>
       </div>
     </div>
   );

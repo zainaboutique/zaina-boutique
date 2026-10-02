@@ -69,9 +69,16 @@ export default function CheckoutModal({ onClose }: Props) {
 
   const subtotal = totalPrice();
   // Free shipping only when EVERY item in the cart qualifies — a single
-  // item without the flag means the admin's flat fee still applies.
+  // item without the flag means a shipping charge still applies. Among the
+  // non-free items, a product's own shipping cost (set in Admin → Product)
+  // takes priority over the site-wide default — and when more than one
+  // non-free item has its own cost, the highest one applies rather than
+  // adding them together, since shipping is charged per order, not per item.
   const qualifiesForFreeShipping = items.length > 0 && items.every((i) => i.freeShipping);
-  const shippingCost = qualifiesForFreeShipping ? 0 : (settings?.shippingFee ?? 0);
+  const nonFreeItems = items.filter((i) => !i.freeShipping);
+  const shippingCost = qualifiesForFreeShipping
+    ? 0
+    : Math.max(settings?.shippingFee ?? 0, ...nonFreeItems.map((i) => i.shippingCost ?? 0));
   const total = Math.max(0, subtotal - (discountApplied?.amount ?? 0)) + shippingCost;
 
   async function applyDiscount() {

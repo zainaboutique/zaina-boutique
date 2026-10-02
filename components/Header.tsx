@@ -7,6 +7,7 @@ import Image from "@/components/OptimizedImage";
 import { Search, ShoppingBag, ChevronDown, Menu, X, User } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { getLogoFontClassName } from "@/lib/logo-fonts";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import type { Settings } from "@/lib/types";
 
 const SHOP_GROUPS = ["New Arrival", "Women", "Men", "Kids"] as const;
@@ -31,6 +32,7 @@ export default function Header({ settings }: { settings: Settings }) {
   const [q, setQ] = useState("");
   const [shopOpen, setShopOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useScrollLock(mobileMenuOpen);
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();

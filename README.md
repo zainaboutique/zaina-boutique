@@ -380,10 +380,15 @@ India has 775+ districts and new ones are created periodically as states reorgan
 hardcoded dropdown risks being wrong or incomplete in a way a customer can't work around; a
 dropdown that's missing someone's actual district is worse than a text field.
 
-**Shipping fee.** Admin → Settings → Payments has a new "Shipping Fee" field — a flat amount
-charged at checkout, shown as its own line item. A product marked "Free Shipping" (Admin →
+**Shipping fee.** Admin → Settings → Payments has a "Shipping Fee" field — a site-wide flat
+amount charged at checkout, shown as its own line item. A product marked "Free Shipping" (Admin →
 Product) waives this fee, but only when *every* item in the cart has that flag — a mixed cart
-still pays the fee, so the badge never ends up more generous than intended.
+still pays the fee, so the badge never ends up more generous than intended. For a specific
+product that costs more (or less) to ship than the site-wide default, Admin → Product has its own
+"Shipping Cost" field — it only appears once "Free Shipping" is unchecked for that product, and
+only needs filling in when that one item should differ from the default. If a cart has several
+non-free items with different costs, the highest one applies rather than adding them together,
+since shipping is charged per order, not per item.
 
 **Cancel one item in an order, not the whole thing.** Admin → Order now has a Cancel button next
 to each individual item — for when a customer orders 2 products but only 1 is actually in stock.
@@ -393,6 +398,16 @@ struck-through item with a note on their tracking page. One thing this can't do 
 for an order paid via Razorpay, the actual refund for the cancelled item still has to be issued
 manually through your Razorpay dashboard — this app flags that it's needed, but doesn't move
 money on its own.
+
+## 13a. Mobile Menu Fixes
+
+Two real bugs fixed: the "Admin Dashboard" link was visible in the customer-facing mobile menu
+(bottom nav's hamburger) — removed, since there's no reason to advertise the admin login to every
+visitor. Separately, opening either mobile menu (header's or the bottom nav's) didn't prevent the
+page underneath from being scrolled — scrolling it down while the menu was open could bring the
+real page footer into view behind the semi-transparent backdrop, looking like broken/duplicated
+content. Both menus now lock background scrolling while open, which fully fixes this regardless
+of backdrop opacity.
 
 ## 14. Search, Sort & Filter (Shop page)
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Home, Menu, User, ShoppingBag, X } from "lucide-react";
 import { useCartStore } from "@/store/cart";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 const SHOP_GROUPS = ["New Arrival", "Women", "Men", "Kids"] as const;
 
@@ -13,6 +14,7 @@ export default function BottomNav() {
   const totalItems = useCartStore((s) => s.totalItems());
   const openCart = useCartStore((s) => s.open);
   const [menuOpen, setMenuOpen] = useState(false);
+  useScrollLock(menuOpen);
 
   return (
     <>
@@ -66,9 +68,6 @@ export default function BottomNav() {
               </Link>
               <Link href="/track" onClick={() => setMenuOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium bg-bg">
                 Track Your Order
-              </Link>
-              <Link href="/admin-portal/login" onClick={() => setMenuOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium bg-bg">
-                Admin Dashboard
               </Link>
             </div>
           </div>

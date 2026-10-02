@@ -44,6 +44,7 @@ export interface Product {
   tags?: string[];
   sizes?: string[];
   freeShipping?: boolean;
+  shippingCost?: number; // only used when freeShipping is false — overrides the site-wide shipping fee for this specific product
   details?: ProductDetails;
   createdAt?: number;
 }
@@ -85,6 +86,7 @@ export interface CartItem {
   color?: string;
   quantity: number;
   freeShipping?: boolean; // copied from the product at add-to-cart time, so checkout can waive the shipping fee without re-fetching product data
+  shippingCost?: number; // copied from the product's own shippingCost override, if the admin set one
 }
 
 export type OrderStatus = "Pending" | "Processed" | "Shipped" | "Delivered" | "Cancelled";
