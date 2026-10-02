@@ -221,6 +221,7 @@ export interface Settings {
   tagline: string;
   metaDescription?: string; // dedicated SEO description for the homepage — kept separate from tagline, since tagline is also shown visibly in the footer and the two often need different lengths
   shippingFee?: number; // flat fee in ₹, charged at checkout unless every item in the cart has freeShipping set; 0 or unset means free shipping site-wide
+  mainCategoryImages?: Partial<Record<ShopGroup, string>>; // optional thumbnail per main group (New Arrival/Women/Men/Kids), shown in the nav — separate from the per-category images under Admin → Category, which are sub-categories within a group
   logoUrl?: string;
   logoMarkUrl?: string;
   primaryColor: string;

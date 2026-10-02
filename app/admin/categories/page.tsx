@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "@/components/OptimizedImage";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
-import { getCategories, createCategory, updateCategory, deleteCategory } from "@/lib/data";
+import { getCategories, createCategory, updateCategory, deleteCategory, getSettings, saveSettings } from "@/lib/data";
 import { storage, isFirebaseConfigured } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { fileToDataUrl } from "@/lib/utils";
 import FocalPointPicker from "@/components/FocalPointPicker";
-import type { Category, ShopGroup, ImagePosition } from "@/lib/types";
+import type { Category, ShopGroup, ImagePosition, Settings } from "@/lib/types";
 
 const GROUPS: ShopGroup[] = ["New Arrival", "Women", "Men", "Kids"];
 const emptyForm = { name: "", slug: "", parent: "New Arrival" as ShopGroup, imageUrl: "", position: { x: 50, y: 50 } as ImagePosition };
@@ -22,6 +22,32 @@ export default function AdminCategoriesPage() {
   const [uploading, setUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [uploadingMainCat, setUploadingMainCat] = useState<ShopGroup | null>(null);
+
+  useEffect(() => {
+    getSettings().then(setSettings);
+  }, []);
+
+  async function handleMainCategoryUpload(group: ShopGroup, file: File) {
+    if (!settings) return;
+    setUploadingMainCat(group);
+    try {
+      let url: string;
+      if (isFirebaseConfigured && storage) {
+        const fileRef = ref(storage, `main-categories/${group}-${Date.now()}`);
+        await uploadBytes(fileRef, file);
+        url = await getDownloadURL(fileRef);
+      } else {
+        url = await fileToDataUrl(file);
+      }
+      const updated = { ...settings, mainCategoryImages: { ...settings.mainCategoryImages, [group]: url } };
+      await saveSettings(updated);
+      setSettings(updated);
+    } finally {
+      setUploadingMainCat(null);
+    }
+  }
 
   async function refresh() {
     setLoading(true);
@@ -92,17 +118,53 @@ export default function AdminCategoriesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold">Categories</h1>
+        <p className="text-sm text-gray-400 mt-1">Manage your main categories and sub-categories.</p>
+      </div>
+
+      <div className="mt-6">
+        <p className="text-sm font-semibold mb-1">Main Categories</p>
+        <p className="text-xs text-gray-400 mb-3">
+          These four are fixed (every product belongs to one) — you can give each an image shown
+          in the navigation menu. Add the specific items within each one below, under "Sub
+          Categories."
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {GROUPS.map((g) => {
+            const img = settings?.mainCategoryImages?.[g];
+            return (
+              <div key={g} className="bg-white rounded-2xl shadow-card p-3 text-center">
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-bg mb-2">
+                  {img && <Image src={img} alt={g} fill className="object-cover" sizes="150px" />}
+                </div>
+                <p className="text-sm font-medium mb-2">{g}</p>
+                <label className="text-xs underline cursor-pointer">
+                  {uploadingMainCat === g ? "Uploading..." : img ? "Change image" : "Add image"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleMainCategoryUpload(g, e.target.files[0])}
+                  />
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mt-8">
         <div>
-          <h1 className="text-2xl font-bold">Categories</h1>
-          <p className="text-sm text-gray-400 mt-1">Manage shop categories and their images.</p>
+          <p className="text-sm font-semibold">Sub Categories</p>
+          <p className="text-xs text-gray-400 mt-0.5">Specific items within a main category, e.g. "Sarees" under Women.</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-1.5 bg-ink text-white text-sm font-semibold px-4 py-2.5 rounded-full">
-          <Plus size={16} /> Add Category
+          <Plus size={16} /> Add Sub Category
         </button>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
         {loading ? (
           <p className="text-sm text-gray-400">Loading...</p>
         ) : (

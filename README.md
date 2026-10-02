@@ -399,15 +399,37 @@ for an order paid via Razorpay, the actual refund for the cancelled item still h
 manually through your Razorpay dashboard — this app flags that it's needed, but doesn't move
 money on its own.
 
+## 12a. Product Page: Single "Add to Bag" Button
+
+The "Buy Now" button has been removed from the product page (both desktop and the floating
+mobile bar) — there's now one button, "Add to Bag." The floating mobile bar's position was also
+fixed — it previously sat too close to the bottom navigation dock, with barely any gap between
+them; there's now clear, deliberate spacing between every floating element on the product page
+(the Add to Bag bar, the WhatsApp button, and the bottom nav).
+
 ## 13a. Mobile Menu Fixes
 
-Two real bugs fixed: the "Admin Dashboard" link was visible in the customer-facing mobile menu
-(bottom nav's hamburger) — removed, since there's no reason to advertise the admin login to every
-visitor. Separately, opening either mobile menu (header's or the bottom nav's) didn't prevent the
-page underneath from being scrolled — scrolling it down while the menu was open could bring the
-real page footer into view behind the semi-transparent backdrop, looking like broken/duplicated
-content. Both menus now lock background scrolling while open, which fully fixes this regardless
-of backdrop opacity.
+Several real bugs fixed in the two mobile hamburger menus (header's and the bottom nav's):
+- The "Admin Dashboard" link was visible to every customer — removed; there's no reason to
+  advertise the admin login path publicly.
+- Opening either menu didn't prevent the page underneath from being scrolled — scrolling it down
+  while the menu was open could bring the real page footer into view behind the backdrop, looking
+  like broken/duplicated content. Both menus now lock background scrolling while open.
+- The menu panel's height wasn't reliably filling the full screen on every device — it could cut
+  off a couple of the lower menu items behind the page content instead of showing all of them.
+  Switched to a sizing approach that doesn't depend on the parent element resolving a height
+  correctly, which removes the ambiguity.
+- **Women/Men/Kids/New Arrival now expand in place** — tapping the arrow next to one reveals its
+  sub-categories right there in the menu (an accordion), instead of only being reachable by
+  navigating to a separate page first. Tapping the group name itself still goes to that group's
+  full page, same as before.
+
+**Main Categories, a new admin section.** Admin → Category now has two clearly separate
+sections: **Main Categories** (the four fixed groups every product belongs to — Women, Men, Kids,
+New Arrival) and **Sub Categories** (the existing add/edit/delete list, e.g. "Sarees" under
+Women). The four main categories can't be added to or removed, since every product's `audience`
+field is structurally tied to exactly these four — but each can now have its own image, used in
+the navigation menu.
 
 ## 14. Search, Sort & Filter (Shop page)
 

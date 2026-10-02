@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "@/components/OptimizedImage";
@@ -8,7 +8,8 @@ import { Search, ShoppingBag, ChevronDown, Menu, X, User } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { getLogoFontClassName } from "@/lib/logo-fonts";
 import { useScrollLock } from "@/lib/use-scroll-lock";
-import type { Settings } from "@/lib/types";
+import { getCategories } from "@/lib/data";
+import type { Settings, Category } from "@/lib/types";
 
 const SHOP_GROUPS = ["New Arrival", "Women", "Men", "Kids"] as const;
 
@@ -32,7 +33,13 @@ export default function Header({ settings }: { settings: Settings }) {
   const [q, setQ] = useState("");
   const [shopOpen, setShopOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   useScrollLock(mobileMenuOpen);
+
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -130,22 +137,52 @@ export default function Header({ settings }: { settings: Settings }) {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
           <div className="absolute inset-0 bg-black/70" onClick={() => setMobileMenuOpen(false)} />
-          <div className="relative w-72 max-w-[80%] h-full bg-card p-5 space-y-1 overflow-y-auto">
+          <div className="relative w-72 max-w-[80%] h-screen bg-card p-5 space-y-1 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <span className={`font-medium tracking-[0.3em] uppercase text-sm ${logoFontClass}`} style={logoFontStyle}>{settings.siteName || "Zaina Boutique"}</span>
               <button onClick={() => setMobileMenuOpen(false)}><X size={20} /></button>
             </div>
             <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Shop</p>
-            {SHOP_GROUPS.map((g) => (
-              <Link
-                key={g}
-                href={shopGroupHref(g)}
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-3 rounded-xl text-sm font-medium bg-bg mb-1.5"
-              >
-                {g}
-              </Link>
-            ))}
+            {SHOP_GROUPS.map((g) => {
+              const subCategories = categories.filter((c) => c.parent === g);
+              const isExpanded = expandedGroup === g;
+              return (
+                <div key={g} className="mb-1.5">
+                  <div className="flex items-stretch gap-1 bg-bg rounded-xl overflow-hidden">
+                    <Link
+                      href={shopGroupHref(g)}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex-1 px-4 py-3 text-sm font-medium"
+                    >
+                      {g}
+                    </Link>
+                    {subCategories.length > 0 && (
+                      <button
+                        onClick={() => setExpandedGroup(isExpanded ? null : g)}
+                        aria-label={`Show ${g} categories`}
+                        className="px-3"
+                      >
+                        <ChevronDown size={16} className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+                    )}
+                  </div>
+                  {isExpanded && (
+                    <div className="pl-3 mt-1 space-y-1">
+                      {subCategories.map((c) => (
+                        <Link
+                          key={c.id}
+                          href={`/shop?category=${encodeURIComponent(g)}&type=${encodeURIComponent(c.name)}`}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="block px-4 py-2.5 rounded-xl text-sm text-gray-600 bg-bg/60"
+                        >
+                          {c.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             <div className="border-t border-black/5 mt-3 pt-3 space-y-1.5">
               <Link
                 href="/account"

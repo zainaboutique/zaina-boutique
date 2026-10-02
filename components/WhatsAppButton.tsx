@@ -25,7 +25,7 @@ export default function WhatsAppButton({ settings }: { settings: Settings }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Order on WhatsApp"
-      className={`fixed right-4 md:bottom-6 z-40 w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center shadow-dock ${isProductPage ? "bottom-40" : "bottom-24"}`}
+      className={`fixed right-4 md:bottom-6 z-40 w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center shadow-dock ${isProductPage ? "bottom-44" : "bottom-24"}`}
     >
       <MessageCircle size={22} />
     </a>
