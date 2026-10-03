@@ -9,7 +9,7 @@ import { useCartStore } from "@/store/cart";
 import { getLogoFontClassName } from "@/lib/logo-fonts";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { getCategories } from "@/lib/data";
-import type { Settings, Category } from "@/lib/types";
+import type { Settings, Category, ShopGroup } from "@/lib/types";
 
 const SHOP_GROUPS = ["New Arrival", "Women", "Men", "Kids"] as const;
 
@@ -31,7 +31,7 @@ export default function Header({ settings }: { settings: Settings }) {
       : undefined;
   const openCart = useCartStore((s) => s.open);
   const [q, setQ] = useState("");
-  const [shopOpen, setShopOpen] = useState(false);
+  const [hoveredGroup, setHoveredGroup] = useState<ShopGroup | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
@@ -57,40 +57,61 @@ export default function Header({ settings }: { settings: Settings }) {
         </Link>
       )}
 
-      <div className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto">
-        <button className="md:hidden w-9 h-9 flex items-center justify-center" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
-          <Menu size={20} />
-        </button>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 py-3 max-w-6xl mx-auto gap-2">
+        <div className="flex items-center gap-2">
+          <button className="md:hidden w-9 h-9 flex items-center justify-center shrink-0" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
+            <Menu size={20} />
+          </button>
 
-        <Link href="/" className="flex items-center gap-2">
-          {settings.logoMarkUrl && (
-            <Image src={settings.logoMarkUrl} alt={`${settings.siteName || "Zaina Boutique"} logo`} width={28} height={28} className="object-contain h-7 w-7" />
-          )}
-          <span className={`text-lg font-medium tracking-[0.3em] uppercase ${logoFontClass}`} style={logoFontStyle}>{settings.siteName || "Zaina Boutique"}</span>
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-          <Link href="/">Home</Link>
-          <div className="relative" onMouseEnter={() => setShopOpen(true)} onMouseLeave={() => setShopOpen(false)}>
-            <button className="flex items-center gap-1">
-              Shop <ChevronDown size={14} />
-            </button>
-            {shopOpen && (
-              <div className="absolute top-full left-0 bg-card shadow-card rounded-2xl p-2 min-w-[160px]">
-                {SHOP_GROUPS.map((g) => (
-                  <Link
-                    key={g}
-                    href={shopGroupHref(g)}
-                    className="block px-3 py-2 rounded-xl text-sm hover:bg-bg"
-                  >
-                    {g}
-                  </Link>
-                ))}
-              </div>
+          <Link href="/" className="flex items-center gap-2 min-w-0">
+            {settings.logoMarkUrl && (
+              <Image src={settings.logoMarkUrl} alt={`${settings.siteName || "Zaina Boutique"} logo`} width={28} height={28} className="object-contain h-7 w-7 shrink-0" />
             )}
-          </div>
+            <span className={`text-lg font-medium tracking-[0.3em] uppercase truncate ${logoFontClass}`} style={logoFontStyle}>{settings.siteName || "Zaina Boutique"}</span>
+          </Link>
+        </div>
+
+        <nav className="hidden md:flex items-center justify-center gap-6 text-sm font-medium">
+          <Link href="/">Home</Link>
+          <Link href={shopGroupHref("New Arrival")}>New Arrivals</Link>
+          {(["Women", "Men", "Kids"] as ShopGroup[]).map((group) => {
+            const subCategories = categories.filter((c) => c.parent === group);
+            return (
+              <div key={group} className="relative" onMouseEnter={() => setHoveredGroup(group)} onMouseLeave={() => setHoveredGroup(null)}>
+                <Link href={shopGroupHref(group)} className="flex items-center gap-1">
+                  {group} <ChevronDown size={14} />
+                </Link>
+                {hoveredGroup === group && subCategories.length > 0 && (
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 bg-card shadow-card rounded-2xl p-5 mt-1 z-50">
+                    <p className="text-xs uppercase tracking-widest text-gray-400 mb-3 whitespace-nowrap">{group}'s Category</p>
+                    <div className="flex gap-5">
+                      {subCategories.map((c) => (
+                        <Link
+                          key={c.id}
+                          href={`/shop?category=${encodeURIComponent(group)}&type=${encodeURIComponent(c.name)}`}
+                          className="flex flex-col items-center gap-1.5 w-16"
+                        >
+                          <div className="w-14 h-14 rounded-full overflow-hidden relative bg-bg shrink-0">
+                            <Image
+                              src={c.imageUrl}
+                              alt={c.name}
+                              fill
+                              className="object-cover"
+                              style={{ objectPosition: `${c.position?.x ?? 50}% ${c.position?.y ?? 50}%` }}
+                              sizes="56px"
+                            />
+                          </div>
+                          <span className="text-xs text-center leading-tight">{c.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {settings.headerLinks
-            .filter((l) => l.label !== "Home")
+            .filter((l) => l.label !== "Home" && l.label !== "New Arrivals")
             .map((link) => (
               <Link key={link.href} href={link.href}>
                 {link.label}
@@ -98,7 +119,7 @@ export default function Header({ settings }: { settings: Settings }) {
             ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <Link
             href="/account"
             aria-label="Account"

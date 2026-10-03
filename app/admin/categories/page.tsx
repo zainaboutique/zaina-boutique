@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "@/components/OptimizedImage";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { getCategories, createCategory, updateCategory, deleteCategory, getSettings, saveSettings } from "@/lib/data";
+import { OCCASIONS } from "@/lib/demo-data";
 import { storage, isFirebaseConfigured } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { fileToDataUrl } from "@/lib/utils";
@@ -24,6 +25,7 @@ export default function AdminCategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [uploadingMainCat, setUploadingMainCat] = useState<ShopGroup | null>(null);
+  const [uploadingOccasion, setUploadingOccasion] = useState<string | null>(null);
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -46,6 +48,26 @@ export default function AdminCategoriesPage() {
       setSettings(updated);
     } finally {
       setUploadingMainCat(null);
+    }
+  }
+
+  async function handleOccasionCoverUpload(occasion: string, file: File) {
+    if (!settings) return;
+    setUploadingOccasion(occasion);
+    try {
+      let url: string;
+      if (isFirebaseConfigured && storage) {
+        const fileRef = ref(storage, `occasion-covers/${occasion}-${Date.now()}`);
+        await uploadBytes(fileRef, file);
+        url = await getDownloadURL(fileRef);
+      } else {
+        url = await fileToDataUrl(file);
+      }
+      const updated = { ...settings, occasionCoverImages: { ...settings.occasionCoverImages, [occasion]: url } };
+      await saveSettings(updated);
+      setSettings(updated);
+    } finally {
+      setUploadingOccasion(null);
     }
   }
 
@@ -146,6 +168,37 @@ export default function AdminCategoriesPage() {
                     accept="image/*"
                     className="hidden"
                     onChange={(e) => e.target.files?.[0] && handleMainCategoryUpload(g, e.target.files[0])}
+                  />
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <p className="text-sm font-semibold mb-1">Shop By Occasion Covers</p>
+        <p className="text-xs text-gray-400 mb-3">
+          The homepage picks a cover photo for each occasion tile automatically (the first
+          product tagged with it) — set one here to take direct control instead, independent of
+          which products happen to be tagged.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {OCCASIONS.map((occasion) => {
+            const img = settings?.occasionCoverImages?.[occasion];
+            return (
+              <div key={occasion} className="bg-white rounded-2xl shadow-card p-3 text-center">
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-bg mb-2">
+                  {img && <Image src={img} alt={occasion} fill className="object-cover" sizes="150px" />}
+                </div>
+                <p className="text-sm font-medium mb-2">{occasion}</p>
+                <label className="text-xs underline cursor-pointer">
+                  {uploadingOccasion === occasion ? "Uploading..." : img ? "Change image" : "Add image"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleOccasionCoverUpload(occasion, e.target.files[0])}
                   />
                 </label>
               </div>

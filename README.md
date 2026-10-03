@@ -409,6 +409,27 @@ now sit directly at the bottom of the screen with no dock to avoid, and every pa
 padding was trimmed back from the extra space that used to reserve room for it. "Add to Bag" and
 "Buy Now" both remain on the product page, unchanged.
 
+## 12c. Desktop Nav: Image Mega-Menus & Centering Fix
+
+Hovering Women, Men, or Kids in the desktop header now opens a styled panel showing that group's
+actual sub-categories as circular photos (pulling the same images set in Admin → Category) —
+clicking a photo goes straight to that specific sub-category; clicking the group name itself
+goes to that group's full page. This replaces the old plain-text dropdown.
+
+Separately, the top nav links (Home / Shop / New Arrivals / Track Order, or whatever your
+headerLinks are) weren't actually centered — they only looked roughly centered when the logo and
+the account/cart icons happened to be similar widths. Restructured the header into three genuine
+columns so the center nav is centered relative to the full header width, independent of how wide
+the logo or icons are.
+
+## 12d. Shop By Occasion: Admin Cover Image Control
+
+Admin → Category now has a "Shop By Occasion Covers" section — one image slot per occasion
+(Wedding, Festive, Party, Casual, Office). By default, each homepage occasion tile shows a photo
+from whichever product happens to be tagged with it first, which depends on product order rather
+than anything you chose. Setting an image here takes over completely and always wins, regardless
+of which products carry that occasion tag — so the tile shows exactly the photo you pick.
+
 ## 12b. Homepage Category Row: Main Categories With Pop-Down Sub-Categories
 
 The homepage's circular category row now shows the four main categories (New Arrival, Women,

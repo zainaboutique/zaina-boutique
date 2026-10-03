@@ -28,8 +28,9 @@ export default async function HomePage() {
 
   const occasionTiles = OCCASIONS.map((occasion) => {
     const match = products.find((p) => (p.occasions ?? []).includes(occasion));
-    return { occasion, product: match };
-  }).filter((t) => t.product);
+    const coverImage = settings.occasionCoverImages?.[occasion] || (match ? getCoverImage(match) : undefined);
+    return { occasion, coverImage };
+  }).filter((t) => t.coverImage);
 
   return (
     <div className="min-h-screen bg-bg pb-8 md:pb-0">
@@ -62,13 +63,13 @@ export default async function HomePage() {
             <h2 className="text-2xl font-serif mt-1">Shop By Occasion</h2>
           </div>
           <div className="flex gap-3 overflow-x-auto no-scrollbar justify-start md:justify-center pb-2">
-            {occasionTiles.map(({ occasion, product }) => (
+            {occasionTiles.map(({ occasion, coverImage }) => (
               <Link
                 key={occasion}
                 href={`/shop?occasion=${encodeURIComponent(occasion)}`}
                 className="relative w-40 md:w-52 h-56 md:h-72 shrink-0 rounded-2xl overflow-hidden group"
               >
-                <Image src={getCoverImage(product!)} alt={occasion} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="200px" />
+                <Image src={coverImage!} alt={occasion} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="200px" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                 <div className="absolute bottom-0 left-0 p-4 text-white">
                   <p className="font-semibold">{occasion}</p>

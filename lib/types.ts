@@ -222,6 +222,7 @@ export interface Settings {
   metaDescription?: string; // dedicated SEO description for the homepage — kept separate from tagline, since tagline is also shown visibly in the footer and the two often need different lengths
   shippingFee?: number; // flat fee in ₹, charged at checkout unless every item in the cart has freeShipping set; 0 or unset means free shipping site-wide
   mainCategoryImages?: Partial<Record<ShopGroup, string>>; // optional thumbnail per main group (New Arrival/Women/Men/Kids), shown in the nav — separate from the per-category images under Admin → Category, which are sub-categories within a group
+  occasionCoverImages?: Partial<Record<string, string>>; // optional admin-set cover image per "Shop By Occasion" tile on the homepage (Festive/Party/Casual/etc.) — when set, this always wins over the automatic "first matching product" image, so the admin doesn't have to depend on which product happens to match first
   logoUrl?: string;
   logoMarkUrl?: string;
   primaryColor: string;
