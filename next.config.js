@@ -25,7 +25,12 @@ const nextConfig = {
       { source: "/press", destination: "/about", permanent: true },
 
       // ---------- Legacy WordPress/WooCommerce structure (/index.php/...) ----------
+      // WordPress's own links to individual products always had a trailing
+      // slash (e.g. /index.php/product/some-saree/) — matched explicitly
+      // here rather than relying on Next.js to normalize it away, so there's
+      // no ambiguity either way.
       { source: "/index.php/product/:slug", destination: "/product/:slug", permanent: true },
+      { source: "/index.php/product/:slug/", destination: "/product/:slug", permanent: true },
       { source: "/index.php/product-category/:path*", destination: "/shop", permanent: true },
       { source: "/index.php/product-tag/:path*", destination: "/shop", permanent: true },
       { source: "/index.php/products", destination: "/shop", permanent: true },

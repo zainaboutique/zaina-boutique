@@ -100,6 +100,21 @@ npm run dev
 
 Storefront: `http://localhost:3000`. Admin: `http://localhost:3000/admin-portal/login`.
 
+## 1a. Build Resilience to Firestore Hiccups
+
+Every page on this site touches Firestore during rendering — including, once the 6 Firebase
+environment variables are set, during Vercel's own build step (Next.js prerenders pages like the
+built-in `/_not-found` page at build time). The read functions in `lib/data.ts` that run in this
+path (`getSettings`, `getBanners`, `getProducts`, `getProductBySlug`, `getReviews`,
+`getApprovedReviewsSample`, `getPageContent`, `getFaqs`, `getBlogPosts`, `getBlogPostBySlug`) now
+catch any Firestore error and fall back to the same local/demo data used when Firebase isn't
+configured at all, rather than letting the error crash the build. A transient issue — Firestore
+not finished enabling yet, a brief outage, a rate limit — no longer takes down the whole
+deployment; the build just completes using fallback data for whatever failed, and real data comes
+through again on the next successful read. Admin-only functions (orders, all reviews, all pages,
+users) are deliberately left as-is — those run in the browser, not at build time, and a clear
+error there is more useful to you than a silent fallback.
+
 ## 2. Connect Firebase
 
 1. [console.firebase.google.com](https://console.firebase.google.com) → Add project → add a Web App
@@ -513,6 +528,29 @@ what changed and, just as importantly, what's flagged but genuinely isn't a code
   because it uses a query parameter rather than a clean path — converting it would mean changing
   URL structure, which your own stated SEO guidelines say explicitly not to do. Left as-is,
   deliberately.
+
+## 15a. Search Console Audit — October 2026 Findings
+
+Checked a real Search Console export (Not Found, Soft 404, Crawled-not-indexed, and Indexed
+reports) against the live redirect rules and site behavior. Two real fixes made:
+- Added an explicit trailing-slash variant for the `/index.php/product/:slug` redirect, since
+  WordPress's own links to products always had a trailing slash — removes any ambiguity about
+  whether that would have matched.
+- Search result pages (`/shop?q=...`) were being indexed with no control over it at all — added
+  `noindex` specifically for search queries (an unbounded set of thin/duplicate pages that add no
+  value indexed individually), while leaving category/occasion browsing (`?category=`, `?type=`,
+  `?occasion=`) indexable, since those are closer to real landing pages.
+
+**What the data showed that *isn't* a code problem:**
+- Every "Not Found (404)" URL in the report had a last-crawl date from July–August — before this
+  site (and its redirects) existed. That's stale crawl data, not a sign anything is broken;
+  Google simply hasn't revisited those URLs since the redirects went live. This clears up on its
+  own as Google recrawls, or can be nudged along by resubmitting the sitemap in Search Console.
+- The bulk of the 831 "Soft 404" pages are `/product/{slug}` URLs for real-looking products that
+  return "Product not found" — because the catalog hasn't been imported into Firebase yet (see
+  section 11, Product CSV Bulk Import). These will resolve automatically once that import is
+  done; a handful of others (like `/product/saree`, `/product/product-5`) are generic placeholder
+  slugs that were never real products and are correctly showing as not found.
 
 ## 16. SEO & Search Console
 

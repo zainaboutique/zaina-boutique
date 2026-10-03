@@ -50,8 +50,12 @@ const KEYS = {
 
 export async function getProducts(): Promise<Product[]> {
   if (isFirebaseConfigured && db) {
-    const snap = await getDocs(query(collection(db, "products"), orderBy("createdAt", "desc")));
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Product, "id">) }));
+    try {
+      const snap = await getDocs(query(collection(db, "products"), orderBy("createdAt", "desc")));
+      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Product, "id">) }));
+    } catch (err) {
+      console.warn("getProducts: Firestore read failed, using fallback data.", err);
+    }
   }
   const products = readLocal(KEYS.products, demoProducts);
   return [...products].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
@@ -71,10 +75,14 @@ export async function getProduct(id: string): Promise<Product | null> {
 // document id, which stays the primary key for cart/order operations.
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   if (isFirebaseConfigured && db) {
-    const snap = await getDocs(query(collection(db, "products"), where("slug", "==", slug)));
-    if (snap.empty) return null;
-    const d = snap.docs[0];
-    return { id: d.id, ...(d.data() as Omit<Product, "id">) };
+    try {
+      const snap = await getDocs(query(collection(db, "products"), where("slug", "==", slug)));
+      if (snap.empty) return null;
+      const d = snap.docs[0];
+      return { id: d.id, ...(d.data() as Omit<Product, "id">) };
+    } catch (err) {
+      console.warn("getProductBySlug: Firestore read failed, using fallback data.", err);
+    }
   }
   const products = readLocal(KEYS.products, demoProducts);
   return products.find((p) => p.slug === slug) ?? null;
@@ -169,8 +177,12 @@ export async function deleteCategory(id: string): Promise<void> {
 
 export async function getBanners(): Promise<HeroBanner[]> {
   if (isFirebaseConfigured && db) {
-    const snap = await getDocs(query(collection(db, "banners"), orderBy("order", "asc")));
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<HeroBanner, "id">) }));
+    try {
+      const snap = await getDocs(query(collection(db, "banners"), orderBy("order", "asc")));
+      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<HeroBanner, "id">) }));
+    } catch (err) {
+      console.warn("getBanners: Firestore read failed, using fallback data.", err);
+    }
   }
   const banners = readLocal(KEYS.banners, demoBanners);
   return [...banners].sort((a, b) => a.order - b.order);
@@ -337,10 +349,14 @@ export async function getOrdersByEmail(email: string): Promise<Order[]> {
 export async function getReviews(productId: string): Promise<Review[]> {
   // Public-facing: approved only.
   if (isFirebaseConfigured && db) {
-    const snap = await getDocs(
-      query(collection(db, "reviews"), where("productId", "==", productId), where("approved", "==", true), orderBy("createdAt", "desc"))
-    );
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Review, "id">) }));
+    try {
+      const snap = await getDocs(
+        query(collection(db, "reviews"), where("productId", "==", productId), where("approved", "==", true), orderBy("createdAt", "desc"))
+      );
+      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Review, "id">) }));
+    } catch (err) {
+      console.warn("getReviews: Firestore read failed, using fallback data.", err);
+    }
   }
   const reviews = readLocal<Review[]>(KEYS.reviews, []);
   return reviews.filter((r) => r.productId === productId && r.approved).sort((a, b) => b.createdAt - a.createdAt);
@@ -385,15 +401,20 @@ export async function deleteReview(id: string): Promise<void> {
   writeLocal(KEYS.reviews, reviews.filter((r) => r.id !== id));
 }
 
+async function getApprovedReviewsRaw(): Promise<Review[]> {
+  if (isFirebaseConfigured && db) {
+    try {
+      const snap = await getDocs(query(collection(db, "reviews"), where("approved", "==", true), orderBy("createdAt", "desc")));
+      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Review, "id">) }));
+    } catch (err) {
+      console.warn("getApprovedReviewsSample: Firestore read failed, using fallback data.", err);
+    }
+  }
+  return readLocal<Review[]>(KEYS.reviews, []).filter((r) => r.approved);
+}
+
 export async function getApprovedReviewsSample(count = 6): Promise<(Review & { productTitle?: string })[]> {
-  const [reviews, products] = await Promise.all([
-    isFirebaseConfigured && db
-      ? getDocs(query(collection(db, "reviews"), where("approved", "==", true), orderBy("createdAt", "desc"))).then((snap) =>
-          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Review, "id">) }))
-        )
-      : Promise.resolve(readLocal<Review[]>(KEYS.reviews, []).filter((r) => r.approved)),
-    getProducts(),
-  ]);
+  const [reviews, products] = await Promise.all([getApprovedReviewsRaw(), getProducts()]);
   const withTitles = reviews.map((r) => ({ ...r, productTitle: products.find((p) => p.id === r.productId)?.title }));
   return withTitles.slice(0, count);
 }
@@ -449,9 +470,17 @@ export async function validateDiscountCode(code: string): Promise<Discount | nul
 
 export async function getSettings(): Promise<Settings> {
   if (isFirebaseConfigured && db) {
-    const snap = await getDoc(doc(db, "settings", "main"));
-    const stored = snap.exists() ? (snap.data() as Partial<Settings>) : {};
-    return { ...demoSettings, ...stored, payments: { ...demoSettings.payments, ...(stored.payments || {}) } };
+    try {
+      const snap = await getDoc(doc(db, "settings", "main"));
+      const stored = snap.exists() ? (snap.data() as Partial<Settings>) : {};
+      return { ...demoSettings, ...stored, payments: { ...demoSettings.payments, ...(stored.payments || {}) } };
+    } catch (err) {
+      // Falls through to the local/demo data below rather than throwing —
+      // this runs during page rendering (including build-time prerendering,
+      // where every page shares one failure), so a transient Firestore
+      // hiccup here must not be able to take the whole site down.
+      console.warn("getSettings: Firestore read failed, using fallback data.", err);
+    }
   }
   // Merge with current defaults rather than returning stored data as-is —
   // this backfills any fields (like `payments`) that didn't exist yet when
@@ -473,8 +502,12 @@ export async function saveSettings(settings: Settings): Promise<void> {
 export async function getPageContent(slug: string): Promise<PageContent> {
   const fallback = demoPages.find((p) => p.slug === slug) || { slug, title: slug, body: "", updatedAt: Date.now() };
   if (isFirebaseConfigured && db) {
-    const snap = await getDoc(doc(db, "pages", slug));
-    return snap.exists() ? (snap.data() as PageContent) : fallback;
+    try {
+      const snap = await getDoc(doc(db, "pages", slug));
+      return snap.exists() ? (snap.data() as PageContent) : fallback;
+    } catch (err) {
+      console.warn("getPageContent: Firestore read failed, using fallback data.", err);
+    }
   }
   const pages = readLocal<PageContent[]>(KEYS.pages, demoPages);
   return pages.find((p) => p.slug === slug) || fallback;
@@ -505,8 +538,12 @@ export async function savePageContent(slug: string, updates: { title: string; bo
 
 export async function getFaqs(): Promise<FaqItem[]> {
   if (isFirebaseConfigured && db) {
-    const snap = await getDocs(query(collection(db, "faqs"), orderBy("order", "asc")));
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<FaqItem, "id">) }));
+    try {
+      const snap = await getDocs(query(collection(db, "faqs"), orderBy("order", "asc")));
+      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<FaqItem, "id">) }));
+    } catch (err) {
+      console.warn("getFaqs: Firestore read failed, using fallback data.", err);
+    }
   }
   return [...readLocal<FaqItem[]>(KEYS.faqs, demoFaqs)].sort((a, b) => a.order - b.order);
 }
@@ -546,10 +583,14 @@ export async function reorderFaqs(orderedIds: string[]): Promise<void> {
 export async function getBlogPosts(): Promise<BlogPost[]> {
   // Public-facing: published only.
   if (isFirebaseConfigured && db) {
-    const snap = await getDocs(
-      query(collection(db, "blogPosts"), where("status", "==", "published"), orderBy("createdAt", "desc"))
-    );
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<BlogPost, "id">) }));
+    try {
+      const snap = await getDocs(
+        query(collection(db, "blogPosts"), where("status", "==", "published"), orderBy("createdAt", "desc"))
+      );
+      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<BlogPost, "id">) }));
+    } catch (err) {
+      console.warn("getBlogPosts: Firestore read failed, using fallback data.", err);
+    }
   }
   return readLocal<BlogPost[]>(KEYS.blogPosts, demoBlogPosts)
     .filter((p) => p.status === "published")
@@ -567,12 +608,16 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
   if (isFirebaseConfigured && db) {
-    const snap = await getDocs(
-      query(collection(db, "blogPosts"), where("slug", "==", slug), where("status", "==", "published"))
-    );
-    if (snap.empty) return null;
-    const d = snap.docs[0];
-    return { id: d.id, ...(d.data() as Omit<BlogPost, "id">) };
+    try {
+      const snap = await getDocs(
+        query(collection(db, "blogPosts"), where("slug", "==", slug), where("status", "==", "published"))
+      );
+      if (snap.empty) return null;
+      const d = snap.docs[0];
+      return { id: d.id, ...(d.data() as Omit<BlogPost, "id">) };
+    } catch (err) {
+      console.warn("getBlogPostBySlug: Firestore read failed, using fallback data.", err);
+    }
   }
   const posts = readLocal<BlogPost[]>(KEYS.blogPosts, demoBlogPosts);
   return posts.find((p) => p.slug === slug && p.status === "published") ?? null;
