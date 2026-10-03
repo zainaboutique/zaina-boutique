@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 
@@ -27,7 +27,15 @@ let googleProvider: GoogleAuthProvider | undefined;
 
 if (isFirebaseConfigured) {
   app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  db = getFirestore(app);
+  try {
+    // ignoreUndefinedProperties: empty optional fields (e.g. an empty
+    // "Compare Price" in the CSV import) are skipped instead of crashing
+    // addDoc()/setDoc() with "Unsupported field value: undefined".
+    db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+  } catch {
+    // Firestore was already initialised earlier (e.g. hot reload) - reuse it.
+    db = getFirestore(app);
+  }
   storage = getStorage(app);
   auth = getAuth(app);
   googleProvider = new GoogleAuthProvider();
