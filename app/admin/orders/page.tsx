@@ -4,8 +4,20 @@ import { useEffect, useState } from "react";
 import { formatPrice } from "@/lib/utils";
 import { X } from "lucide-react";
 import Link from "next/link";
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  startAfter,
+  type QueryDocumentSnapshot,
+} from "firebase/firestore";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { getOrders, updateOrderStatus, updateOrderTracking, cancelOrderItem, restoreOrderItem, revisedOrderTotal } from "@/lib/data";
 import type { Order, OrderStatus } from "@/lib/types";
+
+const PAGE_SIZE = 50;
 
 const STATUS_DOT: Record<OrderStatus, string> = {
   Pending: "bg-gray-300",
@@ -23,9 +35,28 @@ const STATUS_TEXT: Record<OrderStatus, string> = {
   Cancelled: "text-red-600",
 };
 
+// Loads orders newest-first, 50 at a time, instead of downloading all of them.
+async function fetchOrdersPage(after: QueryDocumentSnapshot | null) {
+  if (isFirebaseConfigured && db) {
+    const base = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    const pageQuery = after ? query(base, startAfter(after), limit(PAGE_SIZE)) : query(base, limit(PAGE_SIZE));
+    const snap = await getDocs(pageQuery);
+    return {
+      orders: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Order, "id">) })),
+      cursor: snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null,
+      hasMore: snap.docs.length === PAGE_SIZE,
+    };
+  }
+  // Demo mode (no Firebase): everything comes back in one go.
+  return { orders: await getOrders(), cursor: null as QueryDocumentSnapshot | null, hasMore: false };
+}
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<QueryDocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [selected, setSelected] = useState<Order | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [trackingForm, setTrackingForm] = useState({ carrier: "", trackingNumber: "", trackingUrl: "" });
@@ -34,8 +65,28 @@ export default function AdminOrdersPage() {
 
   async function refresh() {
     setLoading(true);
-    setOrders(await getOrders());
+    const page = await fetchOrdersPage(null);
+    setOrders(page.orders);
+    setCursor(page.cursor);
+    setHasMore(page.hasMore);
     setLoading(false);
+  }
+
+  async function loadMore() {
+    setLoadingMore(true);
+    try {
+      const page = await fetchOrdersPage(cursor);
+      setOrders((prev) => [...prev, ...page.orders]);
+      setCursor(page.cursor);
+      setHasMore(page.hasMore);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  // After a change, update just that row in the list — no need to download everything again.
+  function patchOrder(id: string, changes: Partial<Order>) {
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...changes } : o)));
   }
 
   useEffect(() => {
@@ -44,7 +95,7 @@ export default function AdminOrdersPage() {
 
   async function handleStatusChange(id: string, status: OrderStatus) {
     await updateOrderStatus(id, status);
-    await refresh();
+    patchOrder(id, status === "Cancelled" ? { status, cancelledAt: Date.now() } : { status });
     setSelected((s) => (s && s.id === id ? { ...s, status } : s));
   }
 
@@ -54,7 +105,7 @@ export default function AdminOrdersPage() {
       ? await restoreOrderItem(selected, itemIndex)
       : await cancelOrderItem(selected, itemIndex);
     setSelected(updated);
-    await refresh();
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
   }
 
   function openOrder(order: Order) {
@@ -73,8 +124,8 @@ export default function AdminOrdersPage() {
     try {
       await updateOrderTracking(selected.id, trackingForm);
       setSelected({ ...selected, ...trackingForm });
+      patchOrder(selected.id, trackingForm);
       setTrackingSaved(true);
-      await refresh();
     } finally {
       setTrackingSaving(false);
     }
@@ -83,10 +134,12 @@ export default function AdminOrdersPage() {
   async function confirmCancel() {
     if (!cancelTarget) return;
     await updateOrderStatus(cancelTarget.id, "Cancelled");
+    patchOrder(cancelTarget.id, { status: "Cancelled", cancelledAt: Date.now() });
     setCancelTarget(null);
     setSelected(null);
-    await refresh();
   }
+
+  const selectedPincode = selected ? (selected as Order & { pincode?: string }).pincode : undefined;
 
   return (
     <div>
@@ -131,13 +184,28 @@ export default function AdminOrdersPage() {
         </table>
       </div>
 
+      {!loading && orders.length > 0 && (
+        <div className="flex items-center justify-center gap-3 mt-4 text-xs text-gray-400">
+          <span>Showing {orders.length} order{orders.length === 1 ? "" : "s"}</span>
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="bg-white shadow-card text-ink font-semibold text-sm px-5 py-2 rounded-full disabled:opacity-50"
+            >
+              {loadingMore ? "Loading..." : "Load more"}
+            </button>
+          )}
+        </div>
+      )}
+
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSelected(null)} />
           <div className="relative bg-white w-full md:max-w-md md:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 sticky top-0 bg-white">
               <h2 className="font-bold text-lg">Order {selected.orderNumber}</h2>
-              <button onClick={() => setSelected(null)}><X size={20} /></button>
+              <button onClick={() => setSelected(null)} aria-label="Close"><X size={20} /></button>
             </div>
             <div className="px-5 py-4 space-y-4 text-sm">
               <div>
@@ -147,7 +215,10 @@ export default function AdminOrdersPage() {
               </div>
               <div>
                 <p className="text-gray-400 text-xs">Shipping Address</p>
-                <p className="font-medium">{selected.address}, {selected.city}{selected.state ? `, ${selected.state}` : ""}</p>
+                <p className="font-medium">
+                  {selected.address}, {selected.city}{selected.state ? `, ${selected.state}` : ""}
+                  {selectedPincode ? ` - ${selectedPincode}` : ""}
+                </p>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -161,7 +232,7 @@ export default function AdminOrdersPage() {
                       <div key={item.productId + item.size + (item.color || "") + idx} className={`flex items-center justify-between gap-2 py-2 ${isCancelled ? "opacity-50" : ""}`}>
                         <span className={isCancelled ? "line-through" : ""}>
                           <Link href={`/product/${item.slug || item.productId}`} target="_blank" className="underline hover:text-ink">{item.title}</Link>
-                          {" "}({item.size}{item.color ? `, ${item.color}` : ""}) × {item.quantity}
+                          {" "}{(item.size || item.color) && `(${[item.size, item.color].filter(Boolean).join(", ")}) `}× {item.quantity}
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className={`font-medium ${isCancelled ? "line-through" : ""}`}>{formatPrice(item.price * item.quantity)}</span>
