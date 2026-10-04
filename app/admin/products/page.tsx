@@ -84,6 +84,8 @@ export default function AdminProductsPage() {
   const [importResult, setImportResult] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
+  const [search, setSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(30);
   const { isOwner } = useAdminAuth(); // staff accounts don't see Import CSV
 
   async function refresh() {
@@ -375,6 +377,14 @@ export default function AdminProductsPage() {
     }
   }
 
+  // Search by name, then show only the first few — a long list of rows with
+  // photos is what makes this page slow.
+  const searchTerm = search.trim().toLowerCase();
+  const filteredProducts = searchTerm
+    ? products.filter((p) => p.title.toLowerCase().includes(searchTerm) || (p.slug || "").toLowerCase().includes(searchTerm))
+    : products;
+  const visibleProducts = filteredProducts.slice(0, visibleCount);
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -414,7 +424,20 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-card mt-6 overflow-x-auto">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <input
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setVisibleCount(30); }}
+          placeholder="Search products by name..."
+          aria-label="Search products"
+          className="flex-1 min-w-[220px] bg-white shadow-card rounded-full px-4 py-2.5 text-sm outline-none"
+        />
+        <span className="text-xs text-gray-400">
+          {loading ? "" : `Showing ${Math.min(visibleCount, filteredProducts.length)} of ${filteredProducts.length}`}
+        </span>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-card mt-3 overflow-x-auto">
         <table className="w-full text-sm min-w-[760px]">
           <thead>
             <tr className="text-left text-gray-400 border-b border-black/5">
@@ -431,7 +454,7 @@ export default function AdminProductsPage() {
             {loading ? (
               <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-400">Loading...</td></tr>
             ) : (
-              products.map((p) => (
+              visibleProducts.map((p) => (
                 <tr key={p.id} className="border-b border-black/5 last:border-0">
                   <td className="px-4 py-3 flex items-center gap-3">
                     <div className="relative w-10 h-12 rounded-lg overflow-hidden shrink-0 bg-bg">
@@ -477,6 +500,15 @@ export default function AdminProductsPage() {
                   </td>
                 </tr>
               ))
+            )}
+          {!loading && filteredProducts.length > visibleProducts.length && (
+              <tr>
+                <td colSpan={7} className="px-4 py-4 text-center">
+                  <button onClick={() => setVisibleCount((n) => n + 30)} className="bg-bg font-semibold text-sm px-6 py-2.5 rounded-full">
+                    Show more
+                  </button>
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

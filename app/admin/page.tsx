@@ -3,31 +3,81 @@
 import { useEffect, useState } from "react";
 import { formatPrice } from "@/lib/utils";
 import { DollarSign, ShoppingCart, Package, Clock } from "lucide-react";
+import {
+  collection,
+  getAggregateFromServer,
+  getCountFromServer,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  sum,
+  where,
+} from "firebase/firestore";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { getProducts, getOrders } from "@/lib/data";
-import type { Product, Order } from "@/lib/types";
+import type { Order } from "@/lib/types";
+
+interface Overview {
+  totalSales: number;
+  totalOrders: number;
+  productCount: number;
+  pendingOrders: number;
+  recentOrders: Order[];
+}
+
+// Asks Firebase for the counts and the sales total directly, and fetches only
+// the 5 newest orders — instead of downloading every product and every order.
+async function loadOverview(): Promise<Overview> {
+  if (isFirebaseConfigured && db) {
+    try {
+      const firestore = db;
+      const orders = collection(firestore, "orders");
+      const [productsCount, ordersCount, pendingCount, salesTotal, recentSnap] = await Promise.all([
+        getCountFromServer(collection(firestore, "products")),
+        getCountFromServer(orders),
+        getCountFromServer(query(orders, where("status", "==", "Pending"))),
+        getAggregateFromServer(orders, { totalSales: sum("total") }),
+        getDocs(query(orders, orderBy("createdAt", "desc"), limit(5))),
+      ]);
+      return {
+        totalSales: Number(salesTotal.data().totalSales ?? 0),
+        totalOrders: ordersCount.data().count,
+        productCount: productsCount.data().count,
+        pendingOrders: pendingCount.data().count,
+        recentOrders: recentSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Order, "id">) })),
+      };
+    } catch (err) {
+      console.warn("Overview: quick counts failed, loading the full lists instead.", err);
+    }
+  }
+
+  // Fallback (demo mode, or if the quick way fails): the original full load.
+  const [products, orders] = await Promise.all([getProducts(), getOrders()]);
+  return {
+    totalSales: orders.reduce((sumSoFar, o) => sumSoFar + o.total, 0),
+    totalOrders: orders.length,
+    productCount: products.length,
+    pendingOrders: orders.filter((o) => o.status === "Pending").length,
+    recentOrders: orders.slice(0, 5),
+  };
+}
 
 export default function AdminOverviewPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [overview, setOverview] = useState<Overview | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const [p, o] = await Promise.all([getProducts(), getOrders()]);
-      setProducts(p);
-      setOrders(o);
-      setLoading(false);
-    })();
+    loadOverview().then(setOverview);
   }, []);
 
-  const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
-  const recentOrders = orders.slice(0, 5);
+  const loading = overview === null;
+  const recentOrders = overview?.recentOrders ?? [];
 
   const metrics = [
-    { label: "Total Sales", value: formatPrice(totalSales), icon: DollarSign },
-    { label: "Total Orders", value: orders.length, icon: ShoppingCart },
-    { label: "Product Count", value: products.length, icon: Package },
-    { label: "Pending Orders", value: orders.filter((o) => o.status === "Pending").length, icon: Clock },
+    { label: "Total Sales", value: formatPrice(overview?.totalSales ?? 0), icon: DollarSign },
+    { label: "Total Orders", value: overview?.totalOrders ?? 0, icon: ShoppingCart },
+    { label: "Product Count", value: overview?.productCount ?? 0, icon: Package },
+    { label: "Pending Orders", value: overview?.pendingOrders ?? 0, icon: Clock },
   ];
 
   return (
