@@ -1,37 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "@/components/OptimizedImage";
-import { getCategories, getProducts, filterProductsForShop } from "@/lib/data";
 import ProductGrid from "@/components/ProductGrid";
 import type { Category, Product, ShopGroup } from "@/lib/types";
 
-export default function GroupClient({ shopGroup }: { shopGroup: ShopGroup }) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+interface Props {
+  shopGroup: ShopGroup;
+  // All loaded on the server, so the page arrives complete.
+  categories: Category[];
+  products: Product[]; // the first page of this group's products
+  total: number; // how many products this group has in all
+}
 
-  useEffect(() => {
-    Promise.all([getCategories(), getProducts()]).then(([allCategories, allProducts]) => {
-      setCategories(allCategories.filter((c) => c.parent === shopGroup).sort((a, b) => a.order - b.order));
-      setProducts(filterProductsForShop(allProducts, { category: shopGroup }));
-      setLoading(false);
-    });
-  }, [shopGroup]);
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-400">Loading...</div>;
-  }
+export default function GroupClient({ shopGroup, categories, products, total }: Props) {
+  // "Women's", "Men's" — but "Kids'" (not "Kids's").
+  const possessive = shopGroup.endsWith("s") ? `${shopGroup}'` : `${shopGroup}'s`;
 
   return (
     <div className="min-h-screen bg-bg pb-8">
       <div className="max-w-6xl mx-auto px-4 pt-6">
-        <h1 className="text-2xl font-bold">{shopGroup}'s Collection</h1>
+        <nav aria-label="Breadcrumb" className="text-xs text-gray-400 mb-3">
+          <ol className="flex flex-wrap items-center gap-1.5">
+            <li><Link href="/" className="hover:text-ink">Home</Link></li>
+            <li aria-hidden="true">/</li>
+            <li><Link href="/shop" className="hover:text-ink">Shop</Link></li>
+            <li aria-hidden="true">/</li>
+            <li aria-current="page" className="text-ink">{shopGroup}</li>
+          </ol>
+        </nav>
+
+        <h1 className="text-2xl font-bold">{possessive} Collection</h1>
 
         {categories.length > 0 && (
           <>
-            <p className="text-xs uppercase tracking-widest text-gray-400 mt-6 mb-3">Shop By Category</p>
+            <h2 className="text-xs uppercase tracking-widest text-gray-400 font-normal mt-6 mb-3">Shop By Category</h2>
             <div className="flex gap-4 overflow-x-auto no-scrollbar">
               {categories.map((cat) => (
                 <Link
@@ -57,10 +60,21 @@ export default function GroupClient({ shopGroup }: { shopGroup: ShopGroup }) {
         )}
 
         <div className="flex items-center justify-between mt-8 mb-3">
-          <p className="text-xs uppercase tracking-widest text-gray-400">All {shopGroup}'s Products</p>
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 font-normal">All {possessive} Products</h2>
           <Link href={`/shop?category=${encodeURIComponent(shopGroup)}`} className="text-xs underline">View All</Link>
         </div>
         <ProductGrid products={products} />
+
+        {total > products.length && (
+          <div className="text-center mt-8">
+            <Link
+              href={`/shop?category=${encodeURIComponent(shopGroup)}`}
+              className="inline-block px-6 py-3 rounded-full bg-card shadow-card text-sm font-semibold"
+            >
+              View all {total} products →
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
