@@ -40,11 +40,18 @@ const nextConfig = {
       { source: "/index.php", destination: "/", permanent: true },
 
       // ---------- Category browsing (old /collection/group/sub -> new /shop?category=) ----------
-      // :sub* is an OPTIONAL catch-all, so this one rule covers both
+      // The shop filter matches the exact capitalised names (Women / Men /
+      // Kids), so these three explicit rules come FIRST and send the
+      // correctly-capitalised value. Next.js uses the first rule that
+      // matches, so the generic rule below only catches any other group.
+      // :sub* is an OPTIONAL catch-all, so each rule covers both
       // /collection/women and /collection/women/sarees — subcategory
       // specificity is dropped (the new site filters by top-level category
-      // only); the saree-specific audience still lands on a real, relevant
-      // page rather than a dead end.
+      // only); the visitor still lands on a real, relevant page rather than
+      // a dead end.
+      { source: "/collection/women/:sub*", destination: "/shop?category=Women", permanent: true },
+      { source: "/collection/men/:sub*", destination: "/shop?category=Men", permanent: true },
+      { source: "/collection/kids/:sub*", destination: "/shop?category=Kids", permanent: true },
       { source: "/collection/:group/:sub*", destination: "/shop?category=:group", permanent: true },
 
       // ---------- Other old sections with no direct equivalent ----------
