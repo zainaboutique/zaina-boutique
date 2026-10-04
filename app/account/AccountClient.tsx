@@ -118,7 +118,16 @@ export default function AccountPage() {
       await upsertUser(upserted);
       setProfile(upserted);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed.");
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/popup-blocked") {
+        setError(
+          "Your browser or an ad blocker blocked the Google sign-in window. Allow pop-ups for this site (or pause your ad blocker), or sign in with your email and password above."
+        );
+      } else if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        setError("");
+      } else {
+        setError(err instanceof Error ? err.message : "Sign-in failed.");
+      }
     }
   }
 
