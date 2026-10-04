@@ -6,6 +6,14 @@ import { Instagram, Facebook, MessageCircle } from "lucide-react";
 import { getLogoFontClassName } from "@/lib/logo-fonts";
 import type { Settings } from "@/lib/types";
 
+// A social link only counts once it points at a real profile — a bare
+// "https://instagram.com" is just a placeholder and would send visitors to
+// the wrong place.
+function isRealProfileLink(url: string | undefined): url is string {
+  if (!url) return false;
+  return !/^https?:\/\/(www\.)?(instagram|facebook)\.com\/?$/i.test(url.trim());
+}
+
 export default function Footer({ settings }: { settings: Settings }) {
   const year = new Date().getFullYear();
   const logoFontClass = settings.logoFontFamily !== "custom" ? getLogoFontClassName(settings.logoFontFamily) : "";
@@ -13,6 +21,17 @@ export default function Footer({ settings }: { settings: Settings }) {
     settings.logoFontFamily === "custom" && settings.customFontName
       ? { fontFamily: `'${settings.customFontName}', sans-serif` }
       : undefined;
+
+  // Only list payment methods the store has actually switched on in
+  // Admin → Settings, so the footer never claims something that isn't true.
+  const payments = settings.payments;
+  const acceptedPayments = Array.from(
+    new Set([
+      ...(payments?.codEnabled ? ["Cash on Delivery"] : []),
+      ...(payments?.whatsappOrderEnabled || payments?.razorpayEnabled ? ["UPI"] : []),
+      ...(payments?.razorpayEnabled ? ["Cards", "Razorpay"] : []),
+    ])
+  );
 
   return (
     <footer className="bg-ink text-white mt-8 pb-32 md:pb-12 pt-10">
@@ -33,18 +52,18 @@ export default function Footer({ settings }: { settings: Settings }) {
               </div>
             )}
             <div className="flex gap-2 mt-4">
-              {settings.socialLinks?.instagram && (
-                <a href={settings.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg border border-white/15 flex items-center justify-center hover:bg-white/10">
+              {isRealProfileLink(settings.socialLinks?.instagram) && (
+                <a href={settings.socialLinks!.instagram} target="_blank" rel="noopener noreferrer" aria-label="Zaina Boutique on Instagram" className="w-8 h-8 rounded-lg border border-white/15 flex items-center justify-center hover:bg-white/10">
                   <Instagram size={14} />
                 </a>
               )}
-              {settings.socialLinks?.facebook && (
-                <a href={settings.socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg border border-white/15 flex items-center justify-center hover:bg-white/10">
+              {isRealProfileLink(settings.socialLinks?.facebook) && (
+                <a href={settings.socialLinks!.facebook} target="_blank" rel="noopener noreferrer" aria-label="Zaina Boutique on Facebook" className="w-8 h-8 rounded-lg border border-white/15 flex items-center justify-center hover:bg-white/10">
                   <Facebook size={14} />
                 </a>
               )}
               {settings.whatsappNumber && (
-                <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg border border-white/15 flex items-center justify-center hover:bg-white/10">
+                <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" rel="noopener noreferrer" aria-label="Chat with Zaina Boutique on WhatsApp" className="w-8 h-8 rounded-lg border border-white/15 flex items-center justify-center hover:bg-white/10">
                   <MessageCircle size={14} />
                 </a>
               )}
@@ -65,26 +84,20 @@ export default function Footer({ settings }: { settings: Settings }) {
           ))}
         </div>
 
-        <div className="mt-8 max-w-sm">
-          <p className="text-sm font-semibold mb-2">Join our newsletter</p>
-          <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
-            <input
-              type="email"
-              placeholder="Your email"
-              className="flex-1 bg-white/10 rounded-full px-4 py-2.5 text-sm outline-none placeholder:text-white/40"
-            />
-            <button className="bg-white text-ink text-sm font-semibold px-5 py-2.5 rounded-full">Join</button>
-          </form>
-        </div>
+        {/* The newsletter sign-up form is hidden for now: its button didn't
+            save anything, so visitors would have believed they'd subscribed
+            when they hadn't. Bring it back once it stores the emails. */}
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8 pt-6 border-t border-white/10 text-xs text-white/50">
           <span>© {year} {settings.siteName || "Zaina Boutique"}. All rights reserved.</span>
-          <div className="flex items-center gap-2">
-            <span className="uppercase tracking-wide mr-1">We Accept</span>
-            {["Razorpay", "UPI", "WhatsApp Pay", "VISA", "MC"].map((p) => (
-              <span key={p} className="border border-white/15 rounded px-2 py-1">{p}</span>
-            ))}
-          </div>
+          {acceptedPayments.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="uppercase tracking-wide mr-1">We Accept</span>
+              {acceptedPayments.map((p) => (
+                <span key={p} className="border border-white/15 rounded px-2 py-1">{p}</span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </footer>
