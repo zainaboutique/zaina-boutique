@@ -11,7 +11,7 @@ import {
   orderBy,
   where,
 } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "./firebase";
+import { db, auth, isFirebaseConfigured } from "./firebase";
 import { demoProducts, demoBanners, demoCategories, demoSettings, demoDiscounts, demoPages, demoFaqs, demoBlogPosts } from "./demo-data";
 import { readLocal, writeLocal, slugify } from "./utils";
 import type {
@@ -321,7 +321,15 @@ export async function updateOrderTracking(
 
 export async function findOrderByNumber(orderNumber: string): Promise<Order | null> {
   if (isFirebaseConfigured && db) {
-    const snap = await getDocs(query(collection(db, "orders"), where("orderNumber", "==", orderNumber.trim())));
+    const myEmail = auth?.currentUser?.email?.trim().toLowerCase();
+    if (!myEmail) return null;
+    const snap = await getDocs(
+      query(
+        collection(db, "orders"),
+        where("orderNumber", "==", orderNumber.trim()),
+        where("email", "==", myEmail)
+      )
+    );
     if (snap.empty) return null;
     const d = snap.docs[0];
     return { id: d.id, ...(d.data() as Omit<Order, "id">) };
