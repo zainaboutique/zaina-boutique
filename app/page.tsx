@@ -38,6 +38,8 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-bg pb-8 md:pb-0">
+      {/* The page's one main heading (H1) for search engines and screen readers. */}
+      <h1 className="sr-only">Shop Designer Indian Wear for Women, Men &amp; Kids</h1>
       <div className="pt-2">
         <HeroBanner banners={banners} />
       </div>
@@ -97,7 +99,7 @@ export default async function HomePage() {
       <div className="max-w-6xl mx-auto px-4 pt-8">
         <div className="text-center mb-5">
           <p className="text-xs uppercase tracking-widest text-gray-400">What Our Customers Say</p>
-          <h2 className="text-2xl font-serif mt-1">Loved By Thousands</h2>
+          <h2 className="text-2xl font-serif mt-1">Customer Reviews</h2>
           {reviews.length > 0 && (
             <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-500 mt-1">
               <span className="flex text-yellow-400">
