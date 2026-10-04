@@ -13,20 +13,29 @@ import ProductCard from "@/components/ProductCard";
 import ProductGallery from "@/components/ProductGallery";
 import ProductReviews from "@/components/ProductReviews";
 
-export default function ProductDetailClient({ slug }: { slug: string }) {
+interface Props {
+  slug: string;
+  // Loaded on the server so the page arrives complete (no "Loading..." step).
+  initialProduct?: Product | null;
+  initialRelated?: Product[];
+}
+
+export default function ProductDetailClient({ slug, initialProduct, initialRelated }: Props) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.open);
   const totalItems = useCartStore((s) => s.totalItems());
 
-  const [product, setProduct] = useState<Product | null | undefined>(undefined);
+  const [product, setProduct] = useState<Product | null | undefined>(initialProduct ?? undefined);
   const [activeImage, setActiveImage] = useState(0);
-  const [size, setSize] = useState("");
-  const [color, setColor] = useState("");
+  const [size, setSize] = useState(initialProduct ? (initialProduct.sizes?.length ? initialProduct.sizes[0] : "M") : "");
+  const [color, setColor] = useState(initialProduct?.colors?.length ? initialProduct.colors[0].name : "");
   const [qty, setQty] = useState(1);
-  const [related, setRelated] = useState<Product[]>([]);
+  const [related, setRelated] = useState<Product[]>(initialRelated ?? []);
 
   useEffect(() => {
+    // Already loaded on the server — nothing to fetch in the browser.
+    if (initialProduct) return;
     (async () => {
       const p = await getProductBySlug(slug);
       setProduct(p);
@@ -37,7 +46,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
         setRelated(getRelatedProducts(all, p));
       }
     })();
-  }, [slug]);
+  }, [slug, initialProduct]);
 
   if (product === undefined) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-gray-400">Loading...</div>;
@@ -64,11 +73,11 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
   return (
     <div className="min-h-screen bg-bg pb-28 md:pb-12">
       <div className="sticky top-0 z-30 bg-bg/95 backdrop-blur flex items-center justify-between px-4 py-3 border-b border-black/5 md:hidden">
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-card shadow-card flex items-center justify-center">
+        <button onClick={() => router.back()} aria-label="Go back" className="w-9 h-9 rounded-full bg-card shadow-card flex items-center justify-center">
           <ArrowLeft size={16} />
         </button>
         <span className="text-sm font-semibold">Product</span>
-        <button onClick={openCart} className="relative w-9 h-9 rounded-full bg-card shadow-card flex items-center justify-center">
+        <button onClick={openCart} aria-label="Open bag" className="relative w-9 h-9 rounded-full bg-card shadow-card flex items-center justify-center">
           <ShoppingBag size={16} />
           {totalItems > 0 && (
             <span className="absolute -top-1 -right-1 bg-accent text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
@@ -77,6 +86,16 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
           )}
         </button>
       </div>
+
+      <nav aria-label="Breadcrumb" className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-6 text-xs text-gray-400">
+        <ol className="flex flex-wrap items-center gap-1.5">
+          <li><Link href="/" className="hover:text-ink">Home</Link></li>
+          <li aria-hidden="true">/</li>
+          <li><Link href="/shop" className="hover:text-ink">Shop</Link></li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page" className="text-ink">{product.title}</li>
+        </ol>
+      </nav>
 
       <div className="max-w-6xl mx-auto md:px-6 md:py-8 md:grid md:grid-cols-2 md:gap-10">
         <div className="md:max-w-[480px]">
@@ -140,6 +159,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                       }
                     }}
                     title={c.name}
+                    aria-label={`Color: ${c.name}`}
                     className={`relative w-12 h-12 rounded-full overflow-hidden border-2 ${color === c.name ? "border-ink" : "border-black/10"}`}
                     style={!c.photoUrl ? { background: c.hex || "#ccc" } : undefined}
                   >
@@ -166,21 +186,29 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
 
           <div className="flex items-center gap-3 mt-6">
             <span className="text-sm font-semibold">Qty</span>
-            <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-8 h-8 rounded-full bg-card">−</button>
+            <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity" className="w-8 h-8 rounded-full bg-card">−</button>
             <span className="text-sm font-medium w-4 text-center">{qty}</span>
-            <button onClick={() => setQty((q) => q + 1)} className="w-8 h-8 rounded-full bg-card">+</button>
+            <button onClick={() => setQty((q) => q + 1)} aria-label="Increase quantity" className="w-8 h-8 rounded-full bg-card">+</button>
           </div>
 
           <div className="hidden md:grid grid-cols-2 gap-3 mt-8 max-w-md">
             <button onClick={() => handleAdd(false)} disabled={!isAvailable} className="border border-ink font-semibold py-3.5 rounded-full text-sm disabled:opacity-40 disabled:cursor-not-allowed">Add to Bag</button>
             <button onClick={() => handleAdd(true)} disabled={!isAvailable} className="bg-ink text-white font-semibold py-3.5 rounded-full text-sm disabled:opacity-40 disabled:cursor-not-allowed">{isAvailable ? "Buy Now" : "Out of Stock"}</button>
           </div>
+
+          <p className="text-xs text-gray-400 mt-4 max-w-md">
+            <Link href="/shipping" className="underline">Shipping &amp; Delivery</Link>
+            {" · "}
+            <Link href="/returns" className="underline">Return &amp; Exchange</Link>
+            {" · "}
+            <Link href="/size-guide" className="underline">Size Guide</Link>
+          </p>
         </div>
       </div>
 
       {related.length > 0 && (
         <div className="max-w-6xl mx-auto px-4 md:px-6 mt-10">
-          <h3 className="text-lg font-bold mb-3">You Might Also Like</h3>
+          <h2 className="text-lg font-bold mb-3">You Might Also Like</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {related.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>

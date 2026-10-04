@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
-import { getProductBySlug, getReviews } from "@/lib/data";
+import { getProductBySlug, getProducts, getRelatedProducts, getReviews } from "@/lib/data";
+import type { Product } from "@/lib/types";
 import ProductDetailClient from "./ProductDetailClient";
+
+// Rebuild each product page in the background at most once a minute, so a
+// changed price or stock status shows up quickly without a redeploy, while
+// the database isn't read on every single visit.
+export const revalidate = 60;
 
 // Next.js 16 (like 15 before it) passes `params` as a Promise — it must be
 // awaited before its fields can be read, in both generateMetadata and the
 // page component below.
 type ParamsPromise = Promise<{ slug: string }>;
+
+// Plain JSON copy, so nothing database-specific is passed to the browser part.
+function toPlain<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
 
 export async function generateMetadata({ params }: { params: ParamsPromise }): Promise<Metadata> {
   const { slug } = await params;
@@ -42,9 +53,20 @@ export async function generateMetadata({ params }: { params: ParamsPromise }): P
 export default async function ProductPage({ params }: { params: ParamsPromise }) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
+  // Not found on the server: the browser part tries once more and shows
+  // "Product not found" if it really doesn't exist.
   if (!product) return <ProductDetailClient slug={slug} />;
 
   const reviews = await getReviews(product.id);
+
+  // Related products are worked out here too, so the page arrives complete.
+  let related: Product[] = [];
+  try {
+    related = getRelatedProducts(await getProducts(), product);
+  } catch {
+    related = [];
+  }
+
   const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   const productJsonLd: Record<string, unknown> = {
@@ -90,7 +112,7 @@ export default async function ProductPage({ params }: { params: ParamsPromise })
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <ProductDetailClient slug={slug} />
+      <ProductDetailClient key={slug} slug={slug} initialProduct={toPlain(product)} initialRelated={toPlain(related)} />
     </>
   );
 }
