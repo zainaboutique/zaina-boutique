@@ -5,6 +5,8 @@ import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle, Truck, ExternalLink } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { findOrderByNumber, updateOrderStatus } from "@/lib/data";
 import type { Order, OrderStatus } from "@/lib/types";
 
@@ -17,9 +19,34 @@ function TrackContent() {
   const [searched, setSearched] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  const [needSignIn, setNeedSignIn] = useState(false);
+
+  // Wait for Firebase to tell us whether the customer is signed in.
+  useEffect(() => {
+    if (!auth) {
+      // Demo mode (no Firebase): nothing to sign in to.
+      setSignedIn(true);
+      setAuthReady(true);
+      return;
+    }
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setSignedIn(!!user);
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
 
   async function search(num: string) {
     if (!num.trim()) return;
+    if (!signedIn) {
+      setNeedSignIn(true);
+      setResult(undefined);
+      setSearched(false);
+      return;
+    }
+    setNeedSignIn(false);
     const order = await findOrderByNumber(num);
     setResult(order);
     setSearched(true);
@@ -37,10 +64,13 @@ function TrackContent() {
     }
   }
 
+  // If the page was opened with ?order=..., search once we know who is signed in.
   useEffect(() => {
-    if (searchParams.get("order")) search(searchParams.get("order")!);
+    if (!authReady) return;
+    const fromLink = searchParams.get("order");
+    if (fromLink) search(fromLink);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authReady]);
 
   const canCancel = result && (result.status === "Pending" || result.status === "Processed");
 
@@ -48,7 +78,7 @@ function TrackContent() {
     <div className="min-h-screen bg-bg pb-8">
       <div className="max-w-md mx-auto px-4 pt-10">
         <h1 className="text-2xl font-bold text-center">Track Your Order</h1>
-        <p className="text-sm text-gray-400 text-center mt-1">Enter the order number from your confirmation screen.</p>
+        <p className="text-sm text-gray-400 text-center mt-1">Sign in, then enter the order number from your confirmation screen.</p>
 
         <form
           onSubmit={(e) => {
@@ -68,9 +98,21 @@ function TrackContent() {
           </button>
         </form>
 
+        {needSignIn && (
+          <div className="bg-card rounded-2xl shadow-card p-4 mt-6 text-center">
+            <p className="text-sm font-medium">Please sign in to track your order.</p>
+            <Link
+              href="/account"
+              className="inline-block bg-ink text-white text-sm font-semibold px-6 py-2.5 rounded-full mt-3"
+            >
+              Sign In
+            </Link>
+          </div>
+        )}
+
         {searched && result === null && (
           <div className="flex items-center gap-2 text-sm text-accent mt-6">
-            <XCircle size={18} /> No order found with that number.
+            <XCircle size={18} /> No order found with that number on your account.
           </div>
         )}
 

@@ -3,7 +3,7 @@ import TrackClient from "./TrackClient";
 
 export const metadata: Metadata = {
   title: "Track Your Zaina Boutique Order Online",
-  description: "Enter your order number to check delivery status, shipment tracking details, and manage your Zaina Boutique order — fast, simple, no login required.",
+  description: "Sign in and enter your order number to check delivery status, shipment tracking details, and manage your Zaina Boutique order.",
   alternates: { canonical: "/track" },
 };
 
