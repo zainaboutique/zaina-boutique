@@ -8,6 +8,10 @@ import ProductCard from "@/components/ProductCard";
 import { getProducts, getBanners, getNewArrivals, getApprovedReviewsSample, getCoverImage, getSettings } from "@/lib/data";
 import { OCCASIONS } from "@/lib/demo-data";
 
+// Rebuild this page in the background at most once a minute, so new banners,
+// products and reviews appear without a manual Vercel redeploy.
+export const revalidate = 60;
+
 // A Server Component rather than client-fetched: the homepage's real content
 // (products, banners, reviews) is now present in the initial HTML, not
 // something that pops in after the browser runs JavaScript. This matters for
