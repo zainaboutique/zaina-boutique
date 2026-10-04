@@ -45,7 +45,8 @@ export function buildWhatsAppOrderMessage(o: WaOrderInput): string {
       const lines = [
         `👗 *${multi ? `Product ${idx + 1}` : "Product"}:* ${name}`,
         `🎨 *Color:* ${i.color || "—"}`,
-        `📏 *Size:* ${i.size || "—"}`,
+        // Products without sizes have no Size line at all.
+        ...(i.size ? [`📏 *Size:* ${i.size}`] : []),
         `🔢 *Quantity:* ${i.quantity}`,
       ];
       if (multi) lines.push(`💵 *Price:* ${o.formatPrice(i.price)}`);

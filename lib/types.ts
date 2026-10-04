@@ -10,6 +10,7 @@ export interface ProductDetails {
   material?: string;
   fit?: string;
   care?: string;
+  includes?: string; // what comes with it, e.g. "Saree and blouse piece"
 }
 
 export interface ProductColor {
@@ -136,6 +137,7 @@ export interface Review {
   rating: number;
   text: string;
   approved: boolean;
+  photoUrl?: string; // optional photo, added by the admin with a happy-customer review
   createdAt: number;
 }
 

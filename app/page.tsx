@@ -10,7 +10,7 @@ import { OCCASIONS } from "@/lib/demo-data";
 
 // Rebuild this page in the background at most once a minute, so new banners,
 // products and reviews appear without a manual Vercel redeploy.
-export const revalidate = 60;
+export const revalidate = 300;
 
 // A Server Component rather than client-fetched: the homepage's real content
 // (products, banners, reviews) is now present in the initial HTML, not
@@ -120,6 +120,17 @@ export default async function HomePage() {
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
             {reviews.map((r) => (
               <div key={r.id} className="bg-card rounded-2xl shadow-card p-4 w-64 shrink-0">
+                {(r as unknown as { photoUrl?: string }).photoUrl && (
+                  <div className="relative w-full h-44 rounded-xl overflow-hidden mb-3 bg-bg">
+                    <Image
+                      src={(r as unknown as { photoUrl: string }).photoUrl}
+                      alt={`Photo from ${r.name}`}
+                      fill
+                      className="object-cover"
+                      sizes="256px"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-9 h-9 rounded-full bg-ink text-white flex items-center justify-center text-xs font-bold">
                     {r.name.charAt(0)}

@@ -38,7 +38,7 @@ export default function CartDrawer() {
                 <div className="flex-1">
                   <p className="text-sm font-medium leading-snug">{item.title}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Size: {item.size}{item.color ? ` · Color: ${item.color}` : ""}
+                    {[item.size ? `Size: ${item.size}` : "", item.color ? `Color: ${item.color}` : ""].filter(Boolean).join(" · ")}
                   </p>
                   <p className="text-sm font-bold mt-1">{formatPrice(item.price)}</p>
                   <div className="flex items-center gap-3 mt-2">

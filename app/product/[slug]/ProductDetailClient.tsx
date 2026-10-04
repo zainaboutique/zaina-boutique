@@ -28,7 +28,7 @@ export default function ProductDetailClient({ slug, initialProduct, initialRelat
 
   const [product, setProduct] = useState<Product | null | undefined>(initialProduct ?? undefined);
   const [activeImage, setActiveImage] = useState(0);
-  const [size, setSize] = useState(initialProduct ? (initialProduct.sizes?.length ? initialProduct.sizes[0] : "M") : "");
+  const [size, setSize] = useState(initialProduct ? (initialProduct.sizes?.length ? initialProduct.sizes[0] : "") : "");
   const [color, setColor] = useState(initialProduct?.colors?.length ? initialProduct.colors[0].name : "");
   const [qty, setQty] = useState(1);
   const [related, setRelated] = useState<Product[]>(initialRelated ?? []);
@@ -40,7 +40,7 @@ export default function ProductDetailClient({ slug, initialProduct, initialRelat
       const p = await getProductBySlug(slug);
       setProduct(p);
       if (p) {
-        setSize((p.sizes?.length ? p.sizes[0] : "M"));
+        setSize(p.sizes?.length ? p.sizes[0] : "");
         setColor(p.colors?.length ? p.colors[0].name : "");
         const all = await getProducts();
         setRelated(getRelatedProducts(all, p));
@@ -62,7 +62,19 @@ export default function ProductDetailClient({ slug, initialProduct, initialRelat
   }
 
   const isAvailable = product.inStock !== undefined ? product.inStock : product.stock > 0;
-  const sizes = product.sizes?.length ? product.sizes : ["S", "M", "L", "XL"];
+  // Sizes appear only when some were ticked in the admin.
+  const sizes = product.sizes ?? [];
+  const hasSizes = sizes.length > 0;
+  const availabilityLabel = product.stock > 0 ? `In stock: ${product.stock}` : isAvailable ? "In Stock" : "Out of Stock";
+
+  // Product details shown in one box; a row appears only if it was filled in.
+  const extraDetails = product.details as { includes?: string } | undefined;
+  const detailRows = [
+    { label: "Fabric", value: product.fabric || product.details?.material || "" },
+    { label: "Fit", value: product.details?.fit || "" },
+    { label: "Includes", value: extraDetails?.includes || "" },
+    { label: "Care", value: product.details?.care || "" },
+  ].filter((row) => row.value.trim() !== "");
   const images = product.images?.length ? product.images : [product.imageUrl];
 
   function handleAdd(buyNow: boolean) {
@@ -133,11 +145,15 @@ export default function ProductDetailClient({ slug, initialProduct, initialRelat
             </div>
           )}
 
-          {product.details && (product.details.material || product.details.fit || product.details.care) && (
+          {detailRows.length > 0 && (
             <div className="mt-5 rounded-2xl bg-card p-4 text-sm space-y-1.5 max-w-md">
-              {product.details.material && <div className="flex justify-between"><span className="text-gray-400">Material</span><span className="font-medium text-right">{product.details.material}</span></div>}
-              {product.details.fit && <div className="flex justify-between"><span className="text-gray-400">Fit</span><span className="font-medium text-right">{product.details.fit}</span></div>}
-              {product.details.care && <div className="flex justify-between"><span className="text-gray-400">Care</span><span className="font-medium text-right">{product.details.care}</span></div>}
+              <h2 className="text-sm font-semibold mb-1">Product Details</h2>
+              {detailRows.map((row) => (
+                <div key={row.label} className="flex justify-between gap-4">
+                  <span className="text-gray-400 shrink-0">{row.label}</span>
+                  <span className="font-medium text-right">{row.value}</span>
+                </div>
+              ))}
             </div>
           )}
 
@@ -170,19 +186,26 @@ export default function ProductDetailClient({ slug, initialProduct, initialRelat
             </div>
           )}
 
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold">Select Size</p>
-              <span className="text-xs text-gray-400">{product.stock > 0 ? `In stock: ${product.stock}` : isAvailable ? "In Stock" : "Out of Stock"}</span>
+          {hasSizes ? (
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold">Select Size</p>
+                <span className="text-xs text-gray-400">{availabilityLabel}</span>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {sizes.map((s) => (
+                  <button key={s} onClick={() => setSize(s)} className={`px-4 h-11 rounded-full text-sm font-semibold border ${size === s ? "bg-ink text-white border-ink" : "border-ink/10"}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {sizes.map((s) => (
-                <button key={s} onClick={() => setSize(s)} className={`px-4 h-11 rounded-full text-sm font-semibold border ${size === s ? "bg-ink text-white border-ink" : "border-ink/10"}`}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
+          ) : (
+            <p className="mt-6 text-sm">
+              <span className="text-gray-400">Availability: </span>
+              <span className={`font-medium ${isAvailable ? "text-green-600" : "text-accent"}`}>{availabilityLabel}</span>
+            </p>
+          )}
 
           <div className="flex items-center gap-3 mt-6">
             <span className="text-sm font-semibold">Qty</span>

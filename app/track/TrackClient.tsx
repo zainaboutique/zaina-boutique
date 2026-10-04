@@ -156,7 +156,7 @@ function TrackContent() {
                     <div key={item.productId + item.size + (item.color || "") + idx} className={`flex justify-between py-2 ${isCancelled ? "opacity-50" : ""}`}>
                       <span className={isCancelled ? "line-through" : ""}>
                         <Link href={`/product/${item.slug || item.productId}`} className="underline hover:text-ink">{item.title}</Link>
-                        {" "}({item.size}{item.color ? `, ${item.color}` : ""}) × {item.quantity}
+                        {" "}{(item.size || item.color) && `(${[item.size, item.color].filter(Boolean).join(", ")}) `}× {item.quantity}
                         {isCancelled && <span className="ml-1.5 text-accent no-underline">(Cancelled — out of stock)</span>}
                       </span>
                       <span className={`font-medium ${isCancelled ? "line-through" : ""}`}>{formatPrice(item.price * item.quantity)}</span>

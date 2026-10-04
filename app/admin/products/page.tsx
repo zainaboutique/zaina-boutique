@@ -68,6 +68,7 @@ const emptyForm = {
   material: "",
   fit: "",
   care: "",
+  includes: "",
 };
 
 export default function AdminProductsPage() {
@@ -134,6 +135,7 @@ export default function AdminProductsPage() {
       material: p.details?.material ?? "",
       fit: p.details?.fit ?? "",
       care: p.details?.care ?? "",
+      includes: (p.details as { includes?: string } | undefined)?.includes ?? "",
     });
     setModalOpen(true);
   }
@@ -254,7 +256,7 @@ export default function AdminProductsPage() {
         shippingCost: !form.freeShipping && form.shippingCost ? Number(form.shippingCost) : undefined,
         sizes: form.sizes,
         tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-        details: { material: form.material, fit: form.fit, care: form.care },
+        details: { material: form.material, fit: form.fit, care: form.care, includes: form.includes },
         createdAt: Date.now(),
       };
       if (editingId) {
@@ -621,6 +623,7 @@ export default function AdminProductsPage() {
                 <input placeholder="Fit (e.g. Relaxed fit)" value={form.fit} onChange={(e) => setForm((f) => ({ ...f, fit: e.target.value }))} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
                 <input placeholder="Care instructions" value={form.care} onChange={(e) => setForm((f) => ({ ...f, care: e.target.value }))} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
               </div>
+              <input placeholder="Includes (e.g. Saree + blouse piece)" value={form.includes} onChange={(e) => setForm((f) => ({ ...f, includes: e.target.value }))} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
 
               <div>
                 <p className="text-xs text-gray-400 mb-2">Badges</p>
