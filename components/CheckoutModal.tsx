@@ -5,10 +5,13 @@ import { formatPrice } from "@/lib/utils";
 import Script from "next/script";
 import Link from "next/link";
 import { X, CheckCircle2 } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { useCartStore } from "@/store/cart";
 import { createOrder, validateDiscountCode, getSettings } from "@/lib/data";
 import { buildWhatsAppLink } from "./WhatsAppButton";
 import { INDIA_STATES } from "@/lib/india-states";
+import { isValidPincode, buildWhatsAppOrderMessage } from "@/lib/whatsapp-order";
 import type { Order, Settings } from "@/lib/types";
 
 interface Props {
@@ -32,6 +35,10 @@ export default function CheckoutModal({ onClose }: Props) {
   const [discountApplied, setDiscountApplied] = useState<{ code: string; amount: number } | null>(null);
   const [discountError, setDiscountError] = useState("");
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [pincodeError, setPincodeError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [authReady, setAuthReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -39,11 +46,34 @@ export default function CheckoutModal({ onClose }: Props) {
     address: "",
     city: "",
     state: "",
+    pincode: "",
     payment: "Cash on Delivery" as PaymentMethod,
   });
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value as never }));
+
+  // Customers must be signed in to place an order (the database only accepts
+  // orders from signed-in customers). Also pre-fills their email so the order
+  // shows up under My Orders / Track Order.
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      setSignedIn(true);
+      setAuthReady(true);
+      return;
+    }
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setSignedIn(Boolean(u));
+      setAuthReady(true);
+      if (u?.email) {
+        const signedInEmail = u.email;
+        setForm((f) => (f.email ? f : { ...f, email: signedInEmail }));
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const mustSignIn = authReady && !signedIn;
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -61,10 +91,19 @@ export default function CheckoutModal({ onClose }: Props) {
 
   function buildOrderWhatsAppMessage(order: Order): string {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const itemLines = order.items
-      .map((i, idx) => `${idx + 1}) ${i.title}${i.color ? ` (${i.color})` : ""} — Size ${i.size} × ${i.quantity}\n${origin}/product/${i.slug || i.productId}`)
-      .join("\n");
-    return `Hi Zaina Boutique! I'd like to place order ${order.orderNumber} for ${formatPrice(order.total)}, delivering to ${form.address}, ${form.city}, ${form.state}.\n\nItems:\n${itemLines}`;
+    return buildWhatsAppOrderMessage({
+      orderNumber: order.orderNumber,
+      items: order.items,
+      total: order.total,
+      name: form.name,
+      phone: form.phone,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode,
+      origin,
+      formatPrice,
+    });
   }
 
   const subtotal = totalPrice();
@@ -95,12 +134,15 @@ export default function CheckoutModal({ onClose }: Props) {
 
   async function finalizeOrder(paymentMethod: PaymentMethod, razorpayPaymentId?: string): Promise<Order> {
     const order = await createOrder({
-      customerName: form.name,
-      email: form.email,
-      phone: form.phone,
-      address: form.address,
-      city: form.city,
+      customerName: form.name.trim(),
+      // The signed-in account's email wins, so the order always appears under
+      // that customer's My Orders / Track Order.
+      email: auth?.currentUser?.email ?? form.email,
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      city: form.city.trim(),
       state: form.state,
+      pincode: form.pincode.trim(),
       items,
       subtotal,
       discountCode: discountApplied?.code,
@@ -111,7 +153,7 @@ export default function CheckoutModal({ onClose }: Props) {
       paymentMethod,
       razorpayPaymentId,
       createdAt: Date.now(),
-    });
+    } as Omit<Order, "id" | "orderNumber">);
     setConfirmedOrder(order);
     setStep("confirmed");
     clear();
@@ -120,6 +162,26 @@ export default function CheckoutModal({ onClose }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setFormError("");
+
+    if (mustSignIn) return;
+
+    // All delivery details are required before an order can be placed.
+    if (
+      !form.name.trim() ||
+      !form.phone.trim() ||
+      !form.address.trim() ||
+      !form.city.trim() ||
+      !form.state
+    ) {
+      setFormError("Please fill in all delivery details.");
+      return;
+    }
+    if (!isValidPincode(form.pincode)) {
+      setPincodeError("Please enter a valid 6-digit Pincode.");
+      return;
+    }
+    setPincodeError("");
 
     // Open the tab synchronously, inside the click handler, before any
     // `await` — most browsers block window.open() once it's no longer
@@ -143,10 +205,16 @@ export default function CheckoutModal({ onClose }: Props) {
             // Popup was blocked anyway — fall back to navigating this tab.
             window.location.href = url;
           }
+        } else if (whatsappTab) {
+          whatsappTab.close();
         }
       } else {
         await finalizeOrder(form.payment);
       }
+    } catch (err) {
+      console.error("Checkout failed:", err);
+      if (whatsappTab) whatsappTab.close();
+      setFormError("Sorry, we couldn't place your order. Please check your details and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -209,6 +277,18 @@ export default function CheckoutModal({ onClose }: Props) {
 
         {step === "form" ? (
           <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3">
+            {mustSignIn && (
+              <div className="bg-bg rounded-2xl px-4 py-3 text-sm text-center">
+                <p className="font-medium">Please sign in to place your order.</p>
+                <Link
+                  href="/account"
+                  onClick={() => { onClose(); closeCart(); }}
+                  className="inline-block bg-ink text-white text-sm font-semibold px-6 py-2.5 rounded-full mt-3"
+                >
+                  Sign In
+                </Link>
+              </div>
+            )}
             <input required placeholder="Full name" value={form.name} onChange={(e) => update("name", e.target.value)} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
             <input required type="email" placeholder="Email address" value={form.email} onChange={(e) => update("email", e.target.value)} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
             <input required placeholder="Phone number" value={form.phone} onChange={(e) => update("phone", e.target.value)} className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none" />
@@ -225,6 +305,22 @@ export default function CheckoutModal({ onClose }: Props) {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+            <div>
+              <input
+                inputMode="numeric"
+                autoComplete="postal-code"
+                maxLength={6}
+                placeholder="Pincode (6 digits)"
+                value={form.pincode}
+                onChange={(e) => {
+                  update("pincode", e.target.value.replace(/\D/g, "").slice(0, 6));
+                  if (pincodeError) setPincodeError("");
+                }}
+                aria-invalid={Boolean(pincodeError)}
+                className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none"
+              />
+              {pincodeError && <p className="text-xs text-accent mt-1 px-1">{pincodeError}</p>}
+            </div>
 
             <div className="flex gap-2">
               <input
@@ -299,10 +395,13 @@ export default function CheckoutModal({ onClose }: Props) {
               </div>
             </div>
 
+            {formError && <p className="text-xs text-accent text-center">{formError}</p>}
+
             <button
               type="submit"
               disabled={
                 submitting ||
+                mustSignIn ||
                 Boolean(
                   settings &&
                     settings.payments?.codEnabled === false &&
@@ -333,7 +432,7 @@ export default function CheckoutModal({ onClose }: Props) {
               <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-semibold">{formatPrice(confirmedOrder.subtotal)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Shipping</span><span className="font-semibold">{!confirmedOrder.shippingCost ? "Free" : formatPrice(confirmedOrder.shippingCost)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Total</span><span className="font-semibold">{formatPrice(confirmedOrder.total)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Delivery to</span><span className="font-semibold text-right">{form.address}, {form.city}, {form.state}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Delivery to</span><span className="font-semibold text-right">{form.address}, {form.city}, {form.state} - {form.pincode}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Payment</span><span className="font-semibold">{form.payment}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Status</span><span className="font-semibold">Pending</span></div>
             </div>

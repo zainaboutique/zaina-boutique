@@ -100,6 +100,7 @@ export interface Order {
   address: string;
   city: string;
   state?: string; // optional for orders placed before this field existed
+  pincode?: string; // 6-digit delivery PIN code, collected at checkout
   items: CartItem[];
   subtotal: number;
   discountCode?: string;
