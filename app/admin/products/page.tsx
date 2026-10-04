@@ -9,6 +9,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { formatPrice, fileToDataUrl, slugify, parseCsv } from "@/lib/utils";
 import { SUGGESTED_CATEGORY_CHIPS, OCCASIONS } from "@/lib/demo-data";
 import type { Product, Audience, Badge, ProductColor } from "@/lib/types";
+import { useAdminAuth } from "@/lib/use-admin-auth";
 
 const AUDIENCES: Audience[] = ["Women", "Men", "Kids", "Unisex"];
 const BADGES: Badge[] = ["Premium", "Exclusive", "On Sale", "Trending", "New", "Best Seller", "Featured"];
@@ -83,6 +84,7 @@ export default function AdminProductsPage() {
   const [importResult, setImportResult] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
+  const { isOwner } = useAdminAuth(); // staff accounts don't see Import CSV
 
   async function refresh() {
     setLoading(true);
@@ -381,14 +383,18 @@ export default function AdminProductsPage() {
           <p className="text-sm text-gray-400 mt-1">Manage your catalogue.</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => csvInputRef.current?.click()}
-            disabled={importing}
-            className="flex items-center gap-1.5 bg-white shadow-card text-sm font-semibold px-4 py-2.5 rounded-full disabled:opacity-50"
-          >
-            <FileUp size={16} /> {importing ? "Importing..." : "Import CSV"}
-          </button>
-          <input ref={csvInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleCsvImport(e.target.files[0])} />
+          {isOwner && (
+            <>
+              <button
+                onClick={() => csvInputRef.current?.click()}
+                disabled={importing}
+                className="flex items-center gap-1.5 bg-white shadow-card text-sm font-semibold px-4 py-2.5 rounded-full disabled:opacity-50"
+              >
+                <FileUp size={16} /> {importing ? "Importing..." : "Import CSV"}
+              </button>
+              <input ref={csvInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleCsvImport(e.target.files[0])} />
+            </>
+          )}
           <button onClick={openCreate} className="flex items-center gap-1.5 bg-ink text-white text-sm font-semibold px-4 py-2.5 rounded-full">
             <Plus size={16} /> Add Product
           </button>

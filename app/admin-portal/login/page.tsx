@@ -19,8 +19,9 @@ export default function AdminPortalLoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await login(email, password);
-      router.push("/admin");
+      const role = await login(email, password);
+      // Staff go straight to Products; the owner goes to the dashboard.
+      router.push(role === "staff" ? "/admin/products" : "/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
@@ -46,7 +47,7 @@ export default function AdminPortalLoginPage() {
         )}
         {isFirebaseConfigured && (
           <p className="text-xs bg-bg text-gray-500 rounded-xl px-3 py-2 mt-4">
-            Only accounts listed in the <code>admins</code> Firestore collection can sign in here.
+            Only admin and staff accounts can sign in here.
           </p>
         )}
 
@@ -54,7 +55,7 @@ export default function AdminPortalLoginPage() {
           <input
             required
             type="email"
-            placeholder="Admin email"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full bg-bg rounded-2xl px-4 py-3 text-sm outline-none"
@@ -73,7 +74,7 @@ export default function AdminPortalLoginPage() {
             disabled={submitting}
             className="w-full bg-ink text-white font-semibold py-3.5 rounded-full disabled:opacity-50"
           >
-            {submitting ? "Signing in..." : "Sign In to Admin"}
+            {submitting ? "Signing in..." : "Sign In"}
           </button>
         </form>
       </div>
