@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getPageContent } from "@/lib/data";
 
+export const revalidate = 300;
+
 export async function generateMetadata(): Promise<Metadata> {
   // The meta title/description are intentionally NOT built from the admin's
   // live content.title/body — those can be edited to anything (including

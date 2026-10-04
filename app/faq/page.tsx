@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getFaqs } from "@/lib/data";
 import FaqAccordion from "./FaqAccordion";
 
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "Frequently Asked Questions & Order Help",
   description: "Answers to common questions about ordering, delivery, payments, and returns at Zaina Boutique — everything you need before and after you order.",
