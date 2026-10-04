@@ -5,3 +5,6 @@ node_modules
 *.log
 
 serviceAccountKey.json
+
+old-project-key.json
+old-site-export
