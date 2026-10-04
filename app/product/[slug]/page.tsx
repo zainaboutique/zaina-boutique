@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { getProductBySlug, getProducts, getRelatedProducts, getReviews } from "@/lib/data";
+import { cache } from "react";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import { getProductBySlug, getRelatedProducts, getReviews } from "@/lib/data";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
 import type { Product } from "@/lib/types";
 import ProductDetailClient from "./ProductDetailClient";
 
@@ -18,13 +21,44 @@ function toPlain<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
+// The page title and the page itself both need the product — look it up once
+// per visit instead of twice.
+const getProduct = cache((slug: string) => getProductBySlug(slug));
+
+// Candidates for "You Might Also Like": a few products from the same category
+// and the same audience (two small queries, run together) instead of reading
+// the entire catalogue.
+async function getRelatedCandidates(product: Product): Promise<Product[]> {
+  if (!isFirebaseConfigured || !db) return [];
+  try {
+    const firestore = db;
+    const firstCategory = product.categories?.[0];
+    const [byCategory, byAudience] = await Promise.all([
+      firstCategory
+        ? getDocs(query(collection(firestore, "products"), where("categories", "array-contains", firstCategory), limit(9)))
+        : Promise.resolve(null),
+      getDocs(query(collection(firestore, "products"), where("audience", "==", product.audience), limit(9))),
+    ]);
+    const found = new Map<string, Product>();
+    for (const snap of [byCategory, byAudience]) {
+      if (!snap) continue;
+      for (const d of snap.docs) {
+        if (!found.has(d.id)) found.set(d.id, { id: d.id, ...(d.data() as Omit<Product, "id">) });
+      }
+    }
+    return Array.from(found.values());
+  } catch {
+    return [];
+  }
+}
+
 export async function generateMetadata({ params }: { params: ParamsPromise }): Promise<Metadata> {
   const { slug } = await params;
   // Works fully once Firebase is connected. In demo mode (browser localStorage
   // only), this server-side lookup can't see products you've added locally —
   // that product still renders fine on the page itself, just with generic
   // fallback metadata until Firebase is connected.
-  const product = await getProductBySlug(slug);
+  const product = await getProduct(slug);
   if (!product) return { title: "Product" };
 
   const image = product.images?.[0] || product.imageUrl;
@@ -52,20 +86,18 @@ export async function generateMetadata({ params }: { params: ParamsPromise }): P
 
 export default async function ProductPage({ params }: { params: ParamsPromise }) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const product = await getProduct(slug);
   // Not found on the server: the browser part tries once more and shows
   // "Product not found" if it really doesn't exist.
   if (!product) return <ProductDetailClient slug={slug} />;
 
-  const reviews = await getReviews(product.id);
-
-  // Related products are worked out here too, so the page arrives complete.
-  let related: Product[] = [];
-  try {
-    related = getRelatedProducts(await getProducts(), product);
-  } catch {
-    related = [];
-  }
+  // Reviews and related products are fetched at the same time, so the page
+  // arrives complete without waiting for one after the other.
+  const [reviews, relatedCandidates] = await Promise.all([
+    getReviews(product.id),
+    getRelatedCandidates(product),
+  ]);
+  const related = getRelatedProducts(relatedCandidates, product);
 
   const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
