@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    unoptimized: true, // Vercel's image processing is off; wsrv.nl serves the photos
     remotePatterns: [
       { protocol: "https", hostname: "firebasestorage.googleapis.com" },
       { protocol: "https", hostname: "images.unsplash.com" },
